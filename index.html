@@ -445,11 +445,11 @@ select option{color:#000}
 @keyframes bob{50%{transform:translateY(-8px) rotate(3deg)}}
 @keyframes starspin{0%,100%{transform:rotate(-8deg) scale(1)}50%{transform:rotate(8deg) scale(1.08)}}
 /* каждый экран «всплывает» по частям */
-[data-theme=glass] .scr>*:not(.trophy):not(.winner):not(.cd):not(.pauseov){animation:rise .6s cubic-bezier(.2,1.25,.4,1) both}
-[data-theme=glass] .scr>button.go{animation:rise .6s cubic-bezier(.2,1.25,.4,1) both,neon 2.4s .6s ease-in-out infinite}
-[data-theme=glass] .scr>*:nth-child(2){animation-delay:.06s}[data-theme=glass] .scr>*:nth-child(3){animation-delay:.12s}
-[data-theme=glass] .scr>*:nth-child(4){animation-delay:.18s}[data-theme=glass] .scr>*:nth-child(5){animation-delay:.24s}
-[data-theme=glass] .scr>*:nth-child(n+6){animation-delay:.3s}
+[data-theme=glass] .scr.anim>*:not(.trophy):not(.winner):not(.cd):not(.pauseov){animation:rise .6s cubic-bezier(.2,1.25,.4,1) both}
+[data-theme=glass] .scr.anim>button.go{animation:rise .6s cubic-bezier(.2,1.25,.4,1) both,neon 2.4s .6s ease-in-out infinite}
+[data-theme=glass] .scr.anim>*:nth-child(2){animation-delay:.06s}[data-theme=glass] .scr.anim>*:nth-child(3){animation-delay:.12s}
+[data-theme=glass] .scr.anim>*:nth-child(4){animation-delay:.18s}[data-theme=glass] .scr.anim>*:nth-child(5){animation-delay:.24s}
+[data-theme=glass] .scr.anim>*:nth-child(n+6){animation-delay:.3s}
 /* волнистые «живые» рамки рисует SVG (см. Liquid в скрипте) */
 [data-theme=glass] .card,[data-theme=glass] .stage{position:relative;isolation:isolate;background:none;box-shadow:none;border:0;overflow:visible}
 .lqf{position:absolute;left:-10px;top:-10px;width:calc(100% + 20px);height:calc(100% + 20px);z-index:-1;pointer-events:none;overflow:visible;transform:translateZ(0);will-change:transform;backface-visibility:hidden}
@@ -1762,11 +1762,14 @@ const Perf={
   Perf.tick(now); requestAnimationFrame(loop); })(performance.now());
 
 /* ================== ЭКРАНЫ ================== */
+let lastScreen=null;
 function render(){
+  const changed=screen!==lastScreen; lastScreen=screen;      // новый экран — наверх и с анимацией; тот же — остаёмся на месте
+  const keepY=window.scrollY;
   document.body.dataset.theme=cfg.theme; Perf.apply(); Perf.reset();
   document.documentElement.style.background=getComputedStyle(document.body).getPropertyValue('--bg');
   const app=$('#app');
-  app.className='scr'+((screen==='play'||screen==='results')?' wide':'')+((screen==='play'&&isDraw())||(screen==='remote'&&R.isDrawView())?' dplay':'');
+  app.className='scr'+(changed?' anim':'')+((screen==='play'||screen==='results')?' wide':'')+((screen==='play'&&isDraw())||(screen==='remote'&&R.isDrawView())?' dplay':'');
   app.innerHTML=({menu:vMenu,ready:vReady,countdown:vCountdown,play:vPlay,turnEnd:vTurnEnd,results:vResults,remote:vRemote})[screen]();
   Liquid.attach();
   if(screen==='play'&&isDraw()) Draw.mount();
@@ -1776,7 +1779,7 @@ function render(){
   document.querySelectorAll('[data-count]').forEach(el=>countUp(el,+el.dataset.count));
   if(screen==='results') confetti();
   if(document.activeElement&&document.activeElement.tagName==='BUTTON') document.activeElement.blur();
-  window.scrollTo(0,0);
+  window.scrollTo(0,changed?0:keepY);
 }
 const sndBtns=()=>`<div class="snd"><button class="sm glass rcbtn ${RC.role==='screen'&&RC.remotes().length?'live':''}" onclick="rcOpen()" title="Fjernkontroll">${ICO.phone}</button><button class="sm glass ${cfg.music?'':'off'}" onclick="toggleSnd('music')" title="Musikk">🎵</button><button class="sm glass ${cfg.fx?'':'off'}" onclick="toggleSnd('fx')" title="Lyder">${cfg.fx?'🔊':'🔇'}</button></div>`;
 const seg=(k,opts)=>`<div class="seg">${opts.map(([v,l])=>`<button class="${cfg[k]===v?'on':''}" onclick="setCfg('${k}',${typeof v==='number'?v:`'${v}'`})">${l}</button>`).join('')}</div>`;
