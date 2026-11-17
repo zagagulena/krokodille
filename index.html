@@ -707,7 +707,7 @@ const Snd={
   init(){
     if(this.ac){ if(this.ac.state==='suspended') this.ac.resume().catch(()=>{}); return true; }
     const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return false;
-    let ac; try{ac=this.ac=new AC();}catch(e){return false;}
+    let ac; try{ac=this.ac=new AC();}catch(e){return false;} this._sat=null; this._tb=null;
     const comp=ac.createDynamicsCompressor(); comp.threshold.value=-16; comp.ratio.value=5; comp.connect(ac.destination);
     this.an=ac.createAnalyser(); this.an.fftSize=2048; comp.connect(this.an);
     this.out=ac.createGain(); this.out.gain.value=.9; this.out.connect(comp);
@@ -847,60 +847,101 @@ const Snd={
     this.env(g,t,.003,vol,dec);o.connect(f);o2.connect(g2);g2.connect(f);f.connect(g);this.send(g,bus,wet);
     o.start(t);o2.start(t);o.stop(t+dec+.1);o2.stop(t+dec+.1);
   },
-  /* --- trap: 808 со скольжением, панчевый кик, клэп, хэты с роллами, тёмный колокол --- */
-  sat(bus){                                                         // перегруз 808: гармоники слышны даже в динамике телефона
+  /* --- trap: жирный 808 со скольжением, панчевый кик, снэр, хэты с роллами, синты и эффекты --- */
+  sat(bus){                                                         // перегруз 808: «рычащие» гармоники, слышны и в динамике телефона
     this._sat=this._sat||new Map(); if(this._sat.has(bus)) return this._sat.get(bus);
-    const ac=this.ac,ws=ac.createWaveShaper(),lp=ac.createBiquadFilter(),n=1024,c=new Float32Array(n),k=2.6;
+    const ac=this.ac,ws=ac.createWaveShaper(),lp=ac.createBiquadFilter(),pre=ac.createGain(),post=ac.createGain(),n=1024,c=new Float32Array(n),k=3.2;
     for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(k*x)/Math.tanh(k);}
-    const pre=ac.createGain(),post=ac.createGain();pre.gain.value=3.2;post.gain.value=.15;
-    ws.curve=c;lp.type='lowpass';lp.frequency.value=1800;pre.connect(ws);ws.connect(lp);lp.connect(post);post.connect(bus);this._sat.set(bus,pre);return pre;
+    pre.gain.value=7;post.gain.value=.09;ws.curve=c;lp.type='lowpass';lp.frequency.value=2600;lp.Q.value=.7;
+    pre.connect(ws);ws.connect(lp);lp.connect(post);post.connect(bus);this._sat.set(bus,pre);return pre;
   },
-  b808(m,t,d,{vol=.3,bus=this.music,to=null,at=0,gl=.08}={}){
-    const ac=this.ac,o=ac.createOscillator(),g=ac.createGain(),f=this.hz(m);
-    o.frequency.setValueAtTime(f*2.4,t);o.frequency.exponentialRampToValueAtTime(f,t+.035);
+  tb(){                                                             // шина трэп-музыки с фильтром: в меню приглушена, в раунде открыта
+    if(this._tb) return this._tb; const f=this.ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=20000; f.Q.value=1.2; f.connect(this.music); return this._tb=f;
+  },
+  tbf(hz,t,tc=.05){ this.tb().frequency.setTargetAtTime(hz,t,tc); },
+  b808(m,t,d,{vol=.3,bus=this.tb(),to=null,at=0,gl=.08}={}){
+    const ac=this.ac,o=ac.createOscillator(),g=ac.createGain(),sg=ac.createGain(),f=this.hz(m);
+    o.frequency.setValueAtTime(f*2.6,t);o.frequency.exponentialRampToValueAtTime(f,t+.03);
     if(to!==null){o.frequency.setValueAtTime(f,t+at);o.frequency.exponentialRampToValueAtTime(this.hz(to),t+at+gl);}
-    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.006);g.gain.setTargetAtTime(vol*.55,t+.06,d*.6);
-    g.gain.setValueAtTime(vol*.5,t+Math.max(.07,d-.03));g.gain.linearRampToValueAtTime(0,t+d);
-    o.connect(g);g.connect(this.sat(bus));o.start(t);o.stop(t+d+.02);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.005);g.gain.setTargetAtTime(vol*.7,t+.05,d*.7);
+    g.gain.setValueAtTime(vol*.65,t+Math.max(.06,d-.025));g.gain.linearRampToValueAtTime(0,t+d);
+    sg.gain.value=.55;o.connect(g);g.connect(this.sat(bus));g.connect(sg);sg.connect(bus);o.start(t);o.stop(t+d+.02);
   },
-  tkick(t,{vol=.8,bus=this.music}={}){
+  tkick(t,{vol=.8,bus=this.tb()}={}){
     const ac=this.ac,o=ac.createOscillator(),g=ac.createGain();
-    o.frequency.setValueAtTime(170,t);o.frequency.exponentialRampToValueAtTime(46,t+.07);
-    g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+.24);o.connect(g);g.connect(bus);o.start(t);o.stop(t+.26);
-    this.noise(t,.012,{vol:vol*.35,bp:3500,bus});
+    o.frequency.setValueAtTime(210,t);o.frequency.exponentialRampToValueAtTime(48,t+.055);
+    g.gain.setValueAtTime(vol,t);g.gain.setTargetAtTime(0,t+.04,.07);o.connect(g);g.connect(bus);o.start(t);o.stop(t+.35);
+    this.noise(t,.008,{vol:vol*.5,hp:3000,bus});
   },
-  tclap(t,{vol=.2,bus=this.music,wet=.35}={}){
-    [0,.009,.019].forEach((d,i)=>this.noise(t+d,i===2?.16:.02,{vol,bp:1700,bus,wet:i===2?wet:0}));
+  tsnare(t,{vol=.2,bus=this.tb(),wet=.25}={}){
+    this.noise(t,.16,{vol,bp:2100,bus,wet}); this.noise(t,.09,{vol:vol*.6,hp:6500,bus});
     const ac=this.ac,o=ac.createOscillator(),g=ac.createGain();o.type='triangle';
-    o.frequency.setValueAtTime(230,t);o.frequency.exponentialRampToValueAtTime(170,t+.06);this.env(g,t,.002,vol*.9,.07);o.connect(g);g.connect(bus);o.start(t);o.stop(t+.1);
+    o.frequency.setValueAtTime(240,t);o.frequency.exponentialRampToValueAtTime(175,t+.05);this.env(g,t,.002,vol*1.1,.09);o.connect(g);g.connect(bus);o.start(t);o.stop(t+.12);
   },
-  thats(t,n,span,vol,bus=this.music){ for(let i=0;i<n;i++) this.noise(t+i*span/n,.025,{vol:vol*(.55+.45*i/n),hp:7800,bus}); },
-  tbell(m,t,{vol=.1,dec=1.1,bus=this.music,wet=.45}={}){            // тёмный FM-колокол
-    const ac=this.ac,f=this.hz(m),o=ac.createOscillator(),mo=ac.createOscillator(),mg=ac.createGain(),g=ac.createGain(),lp=ac.createBiquadFilter();
-    mo.frequency.value=f*3.5;mg.gain.setValueAtTime(f*2.2,t);mg.gain.exponentialRampToValueAtTime(f*.08,t+dec*.5);
-    mo.connect(mg);mg.connect(o.frequency);o.frequency.value=f;lp.type='lowpass';lp.frequency.value=4200;
-    this.env(g,t,.003,vol,dec);o.connect(lp);lp.connect(g);this.send(g,bus,wet);o.start(t);mo.start(t);o.stop(t+dec+.1);mo.stop(t+dec+.1);
+  tclap(t,o={}){ this.tsnare(t,o); },
+  thh(t,{vol=.03,open=false,bus=this.tb()}={}){ this.noise(t,open?.22:.026,{vol,hp:open?7000:8600,bus}); },
+  thats(t,n,span,vol,bus=this.tb()){ for(let i=0;i<n;i++) this.noise(t+i*span/n,.022,{vol:vol*(.5+.5*i/n),hp:8600,bus}); },
+  slead(m,t,d,{vol=.05,bus=this.tb(),cut=4200,wet=.3}={}){          // пила-лид: фильтр «закрывается» после атаки
+    const ac=this.ac,f=ac.createBiquadFilter(),g=ac.createGain();f.type='lowpass';f.Q.value=5;
+    f.frequency.setValueAtTime(cut,t);f.frequency.exponentialRampToValueAtTime(Math.max(500,cut*.18),t+d*.9);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.006);g.gain.setValueAtTime(vol*.8,t+d*.6);g.gain.linearRampToValueAtTime(0,t+d);
+    f.connect(g);this.send(g,bus,wet);
+    (Perf.lite?[0]:[-14,0,13]).forEach(c=>{const o=ac.createOscillator();o.type='sawtooth';o.frequency.value=this.hz(m);o.detune.value=c;o.connect(f);o.start(t);o.stop(t+d+.03);});
   },
-  tpad(notes,t,d,{vol=.02,bus=this.music,cut=900}={}){              // тёмный тянущийся аккорд
-    const ac=this.ac,f=ac.createBiquadFilter(),g=ac.createGain();f.type='lowpass';f.frequency.setValueAtTime(cut*.6,t);f.frequency.linearRampToValueAtTime(cut,t+d*.5);f.frequency.linearRampToValueAtTime(cut*.6,t+d);
-    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+d*.25);g.gain.setValueAtTime(vol,t+d*.75);g.gain.linearRampToValueAtTime(0,t+d+.1);
-    f.connect(g);this.send(g,bus,.6);
-    notes.forEach(m=>(Perf.lite?[0]:[-10,10]).forEach(c=>{const o=ac.createOscillator();o.type='sawtooth';o.frequency.value=this.hz(m);o.detune.value=c;o.connect(f);o.start(t);o.stop(t+d+.15);}));
+  sarp(m,t,{vol=.03,bus=this.tb(),dec=.13}={}){                      // короткий электро-щипок
+    const ac=this.ac,o=ac.createOscillator(),f=ac.createBiquadFilter(),g=ac.createGain();o.type='square';o.frequency.value=this.hz(m);
+    f.type='lowpass';f.Q.value=7;f.frequency.setValueAtTime(3200,t);f.frequency.exponentialRampToValueAtTime(500,t+dec);
+    this.env(g,t,.002,vol,dec);o.connect(f);f.connect(g);this.send(g,bus,.35);o.start(t);o.stop(t+dec+.05);
+  },
+  spad(notes,t,d,{vol=.02,bus=this.tb(),cut=1400}={}){               // широкий пэд с «дышащим» фильтром
+    const ac=this.ac,f=ac.createBiquadFilter(),g=ac.createGain();f.type='lowpass';f.Q.value=3;
+    f.frequency.setValueAtTime(cut*.4,t);f.frequency.linearRampToValueAtTime(cut,t+d*.5);f.frequency.linearRampToValueAtTime(cut*.4,t+d);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+d*.2);g.gain.setValueAtTime(vol,t+d*.8);g.gain.linearRampToValueAtTime(0,t+d+.1);
+    f.connect(g);this.send(g,bus,.55);
+    notes.forEach(m=>(Perf.lite?[0]:[-12,12]).forEach(c=>{const o=ac.createOscillator();o.type='sawtooth';o.frequency.value=this.hz(m);o.detune.value=c;o.connect(f);o.start(t);o.stop(t+d+.15);}));
+  },
+  vox(m,t,d,{vol=.06,bus=this.tb(),v='a',bend=0}={}){              // «вокальная» синт-вставка: пила через форманты
+    const ac=this.ac,o=ac.createOscillator(),g=ac.createGain(),F={a:[800,1200,2600],o:[480,850,2400],e:[420,2000,2700]}[v];
+    o.type='sawtooth';o.frequency.setValueAtTime(this.hz(m),t);if(bend)o.frequency.exponentialRampToValueAtTime(this.hz(m+bend),t+d);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.015);g.gain.setValueAtTime(vol,t+d*.7);g.gain.linearRampToValueAtTime(0,t+d);
+    F.slice(0,Perf.lite?2:3).forEach((fr,i)=>{const b=ac.createBiquadFilter();b.type='bandpass';b.frequency.value=fr;b.Q.value=9;const bg=ac.createGain();bg.gain.value=[1.6,1,.5][i];o.connect(b);b.connect(bg);bg.connect(g);});
+    this.send(g,bus,.4);o.start(t);o.stop(t+d+.03);
   },
   riser(t,d,{vol=.05,bus=this.fx}={}){
     const ac=this.ac;if(!this.nb)this.noise(t,.001,{vol:0});
-    const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=this.nb;s.loop=true;f.type='bandpass';f.Q.value=2;
-    f.frequency.setValueAtTime(500,t);f.frequency.exponentialRampToValueAtTime(7000,t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+d);g.gain.linearRampToValueAtTime(0,t+d+.03);
+    const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=this.nb;s.loop=true;f.type='bandpass';f.Q.value=2.5;
+    f.frequency.setValueAtTime(400,t);f.frequency.exponentialRampToValueAtTime(8000,t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+d);g.gain.linearRampToValueAtTime(0,t+d+.03);
     s.connect(f);f.connect(g);this.send(g,bus,.4);s.start(t);s.stop(t+d+.05);
+  },
+  downer(t,d,{vol=.05,bus=this.fx}={}){                              // спуск: шум и тон уходят вниз
+    const ac=this.ac;if(!this.nb)this.noise(t,.001,{vol:0});
+    const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=this.nb;s.loop=true;f.type='bandpass';f.Q.value=2;
+    f.frequency.setValueAtTime(7000,t);f.frequency.exponentialRampToValueAtTime(300,t+d);this.env(g,t,.01,vol,d);s.connect(f);f.connect(g);this.send(g,bus,.5);s.start(t);s.stop(t+d+.05);
+  },
+  impact(t,{vol=.3,bus=this.fx}={}){                                  // удар: низкий «бум» и хвост
+    const ac=this.ac,o=ac.createOscillator(),g=ac.createGain();o.frequency.setValueAtTime(90,t);o.frequency.exponentialRampToValueAtTime(32,t+.9);
+    this.env(g,t,.004,vol,1.1);o.connect(g);g.connect(bus);o.start(t);o.stop(t+1.2);this.noise(t,.5,{vol:vol*.2,bp:900,bus,wet:.9});
+  },
+  zap(t,f1,f2,d,{vol=.06,bus=this.fx}={}){                            // лазерный «зип»
+    const ac=this.ac,o=ac.createOscillator(),f=ac.createBiquadFilter(),g=ac.createGain();o.type='square';f.type='lowpass';f.frequency.value=3500;
+    o.frequency.setValueAtTime(f1,t);o.frequency.exponentialRampToValueAtTime(f2,t+d);this.env(g,t,.003,vol,d);o.connect(f);f.connect(g);this.send(g,bus,.3);o.start(t);o.stop(t+d+.05);
+  },
+  stab(notes,t,{vol=.04,d=.22,bus=this.fx,cut=5000}={}){ notes.forEach(m=>this.slead(m,t,d,{vol,bus,cut,wet:.4})); },
+  tapestop(notes,t,d,{vol=.05,bus=this.fx}={}){                       // «остановка плёнки»
+    const ac=this.ac,f=ac.createBiquadFilter(),g=ac.createGain();f.type='lowpass';f.frequency.setValueAtTime(3000,t);f.frequency.exponentialRampToValueAtTime(200,t+d);
+    g.gain.setValueAtTime(vol,t);g.gain.linearRampToValueAtTime(0,t+d);f.connect(g);g.connect(bus);
+    notes.forEach(m=>{const o=ac.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(this.hz(m),t);o.frequency.exponentialRampToValueAtTime(this.hz(m)*.25,t+d);o.connect(f);o.start(t);o.stop(t+d+.02);});
   },
   // басовая линия трека: A → G# → F# (↗G) → E → D → D#↗E, 2 такта по 16 шагов
   TRAP808:[[0,33,6,32,3.6],[6,30,6,31,5.2],[12,28,6],[18,26,10],[28,27,4,28,.7]],
   trap808(S,b,t,dt,vol){ const n=S.TRAP808.find(x=>x[0]===b); if(!n) return false;
     S.b808(n[1],t,dt*n[2]-.01,{vol,to:n[3]??null,at:dt*(n[4]||0),gl:dt*.6}); return true; },
+  // аккорд под текущей нотой баса — для арпеджио и пэда
+  trapCh(b){ return b<6?[57,61,64,68]:b<12?[54,57,61,64]:b<18?[52,56,59,64]:b<28?[54,57,62,66]:[52,56,59,64]; },
   // «голос» текущего набора музыки — им играют эффекты и праздничная тема
   pluck(m,t,vol=.2,bus=this.fx){
     if(cfg.pack==='liquid') this.drop(m,t,{vol:vol*.9,dec:.45,bus});
-    else if(cfg.pack==='trap') this.tbell(m,t,{vol:vol*.7,dec:.6,bus});
+    else if(cfg.pack==='trap') this.sarp(m,t,{vol:vol*.35,dec:.18,bus});
     else if(cfg.pack==='glass') this.piano(m,t,{vol:vol*.85,dec:1.1,bus});
     else if(cfg.pack==='arcade') this.chip(m,t,.16,{vol:vol*.42,bus});
     else if(cfg.pack==='hygge') this.ep(m,t,{vol:vol*1.3,dec:.7,bus});
@@ -910,37 +951,48 @@ const Snd={
   /* --- музыка: три набора, в каждом фон (menu) и раунд (round) --- */
   packs:{
     trap:{
-      // фон: тёмный пэд ля мажор над скользящим 808, колокол с эхом, приглушённый бит; ~77 BPM half-time
-      menu:{bpm:77,steps:64,swing:0,play(S,s,t,dt){
-        const b=s%32,h=s>>5;
-        if(b===0||b===16)S.tpad([57,61,64,b?66:68],t,dt*16,{vol:.024,cut:900});
-        S.trap808(S,b,t,dt,.085);
-        if(b===0||b===18)S.tkick(t,{vol:.32}); if(b===8||b===24)S.tclap(t,{vol:.09,wet:.5});
-        if(b%2===0)S.noise(t,.025,{vol:b%4?.008:.014,hp:8000});
-        const mel=[{0:76,6:78,12:80,18:81,24:78,28:80},{0:81,6:76,12:73,18:69,24:73,28:76}][h][b];
-        if(mel){ S.tbell(mel,t,{vol:.11,dec:1.4}); if(!Perf.lite)S.tbell(mel,t+dt*3,{vol:.035,dec:.9,wet:.7}); }
+      // фон: тот же бит, но приглушён фильтром «как из-за стены»; к концу цикла фильтр приоткрывается
+      menu:{bpm:76,steps:64,swing:0,play(S,s,t,dt){
+        const b=s%32,h=s>>5,B=S.tb();
+        if(s===0)S.tbf(900,t,.2); if(s===40)S.tbf(2600,t,1.2); if(s===60)S.tbf(900,t,.15);
+        if(b===0)S.spad(S.trapCh(0).concat([71]),t,dt*32,{vol:.024,cut:1800});
+        S.trap808(S,b,t,dt,.13);
+        const k={0:1,6:.7,12:.8,18:1,28:.7}[b]; if(k)S.tkick(t,{vol:.55*k});
+        if(b===8||b===24)S.tsnare(t,{vol:.16});
+        if(b===14)S.thats(t,3,dt*2,.035); else if(b===30&&h)S.thats(t,6,dt*2,.03); else if(b!==15&&!(b===31&&h))S.thh(t,{vol:b%2?.016:.028});
+        const ch=S.trapCh(b); if(b%2===0)S.sarp(ch[[0,2,1,3,2,1,3,2][(b>>1)%8]]+12,t,{vol:.026});
+        if(s===62)S.vox(76,t,dt*2,{vol:.05,v:'o',bend:-2});
       }},
-      // раунд: полный трэп-бит — кик в линию 808, клэп на 3-ю долю, хэты 1/16 с роллами
-      round:{bpm:80,steps:64,swing:0,play(S,s,t,dt){
-        const b=s%32,h=s>>5;
-        if(b===0)S.tpad([57,61,64,68],t,dt*32,{vol:.016,cut:1100});
-        S.trap808(S,b,t,dt,.12);
-        const k={0:1,6:.75,12:.85,18:1,22:.55,28:.8}[b]; if(k)S.tkick(t,{vol:.6*k});
-        if(b===8||b===24)S.tclap(t,{vol:.17}); if(b===31&&h)S.tclap(t,{vol:.05,wet:.2});
-        if(b===14)S.thats(t,3,dt*2,.03); else if(b===30)S.thats(t,6,dt*2,.028); else if(b!==15&&b!==31)S.noise(t,.03,{vol:b%2?.012:.022,hp:7800});
-        if(b===22)S.noise(t,.2,{vol:.016,hp:7000});
-        const mel=[{0:76,2:73,4:76,6:78,9:76,12:80,15:76,18:78,21:81,24:78,26:76,28:80},{0:81,2:80,4:76,6:73,9:76,12:71,15:73,18:69,21:73,24:76,26:78,28:76}][h][b];
-        if(mel){ S.tbell(mel,t,{vol:.095,dec:.7}); if(!Perf.lite)S.tbell(mel+12,t+dt*3,{vol:.025,dec:.4,wet:.7}); }
+      // раунд: бит открыт полностью — 808, кик, снэр, хэты с роллами, арпеджио, пила-лид и «вокальные» вставки
+      round:{bpm:78,steps:64,swing:0,play(S,s,t,dt){
+        const b=s%32,h=s>>5,a=S.accel||0;
+        if(s===0)S.tbf(20000,t,.05);
+        if(b===0)S.spad(S.trapCh(0),t,dt*32,{vol:.014,cut:2200});
+        S.trap808(S,b,t,dt,.165);
+        const k={0:1,6:.75,12:.85,18:1,22:.55,28:.8}[b]; if(k)S.tkick(t,{vol:.7*k});
+        if(b===8||b===24)S.tsnare(t,{vol:.2}); if(b===31&&h)S.tsnare(t,{vol:.07,wet:.1});
+        if(b===14)S.thats(t,3,dt*2,.055); else if(b===30)S.thats(t,h?6:4,dt*2,.05);
+        else if(b!==15&&b!==31){ S.thh(t,{vol:b%2?.026:.045}); if(a>.35&&b%2)S.thh(t+dt/2,{vol:.012}); }
+        if(b===22&&h)S.thh(t,{vol:.02,open:true});
+        const ch=S.trapCh(b); if(b%2===0||a>.5)S.sarp(ch[[0,2,1,3,2,1,3,2][(b>>1)%8]]+(a>.5?24:12),t,{vol:.024});
+        if(h){ const L={0:[81,3],3:[80,3],6:[76,2],8:[78,4],12:[76,2],14:[73,4],18:[69,2],20:[71,2],22:[73,2],24:[76,4],28:[80,4]}[b];
+          if(L){ S.slead(L[0],t,dt*L[1],{vol:.034}); if(!Perf.lite)S.slead(L[0]+12,t+dt*3,dt*L[1]*.6,{vol:.008,cut:2400,wet:.7}); } }
+        else if(b===28)S.vox(73,t,dt*3,{vol:.05,v:'a',bend:-1});
+        if(s===56)S.riser(t,dt*8,{vol:.03,bus:S.tb()});
       }},
-      // праздник: тот же бит ярче, колокольное арпеджио
+      // праздник: ярче и быстрее, лид звучит всё время
       party:{bpm:84,steps:64,swing:0,play(S,s,t,dt){
         const b=s%32,h=s>>5;
-        if(b===0)S.tpad([61,64,69,71],t,dt*32,{vol:.014,cut:1500});
-        S.trap808(S,b,t,dt,.115);
-        const k={0:1,6:.75,12:.85,18:1,22:.55,28:.8}[b]; if(k)S.tkick(t,{vol:.58*k});
-        if(b===8||b===24)S.tclap(t,{vol:.17});
-        if(b===14||b===30)S.thats(t,4,dt*2,.03); else if(b!==15&&b!==31)S.noise(t,.03,{vol:b%2?.012:.022,hp:7800});
-        if(b%2===0)S.tbell([81,85,88,93,88,85,81,76][(b>>1)%8],t,{vol:.06,dec:.35,wet:.3});
+        if(s===0)S.tbf(20000,t,.05);
+        if(b===0)S.spad([61,64,69,71],t,dt*32,{vol:.016,cut:2600});
+        S.trap808(S,b,t,dt,.16);
+        const k={0:1,6:.75,12:.85,18:1,22:.55,28:.8}[b]; if(k)S.tkick(t,{vol:.68*k});
+        if(b===8||b===24)S.tsnare(t,{vol:.2});
+        if(b===14||b===30)S.thats(t,4,dt*2,.055); else if(b!==15&&b!==31)S.thh(t,{vol:b%2?.026:.045});
+        S.sarp(S.trapCh(b)[[0,2,1,3][b%4]]+24,t,{vol:.02});
+        const L={0:[81,3],3:[80,3],6:[76,2],8:[78,4],12:[81,2],14:[83,4],18:[85,2],20:[83,2],22:[81,2],24:[80,4],28:[76,4]}[b];
+        if(L)S.slead(L[0]-(h?0:12),t,dt*L[1],{vol:.032});
+        if(s===62)S.vox(81,t,dt*2,{vol:.05,v:'e'});
       }},
     },
     liquid:{
@@ -1139,25 +1191,26 @@ const Snd={
       },
     };
     const Tr={
-      click:()=>{ this.noise(t,.022,{bus:fx,vol:.22,hp:6500}); this.tbell(93,t,{bus:fx,vol:.09,dec:.12,wet:.1}); },
-      count:()=>{ this.tkick(t,{bus:fx,vol:.7}); this.b808(33,t,.4,{bus:fx,vol:.13}); this.tbell(81,t,{bus:fx,vol:.1,dec:.5}); },
-      go:()=>{ this.tkick(t,{bus:fx,vol:.65}); this.tclap(t,{bus:fx,vol:.2,wet:.5}); this.b808(45,t,1.1,{bus:fx,vol:.13,to:33,at:.05,gl:.35});
-        [69,73,76,81].forEach((m,i)=>this.tbell(m,t+i*.05,{bus:fx,vol:.09,dec:1.2})); this.noise(t,.35,{bus:fx,vol:.04,hp:7000,wet:.4}); },
-      tick:()=>{ this.noise(t,.035,{bus:fx,vol:.45,hp:7000}); this.tbell(96,t,{bus:fx,vol:.06,dec:.05,wet:0}); },
-      tock:()=>{ this.tbell(84,t,{bus:fx,vol:.22,dec:.1,wet:0}); this.noise(t,.05,{bus:fx,vol:.3,bp:1900}); this.tkick(t,{bus:fx,vol:.35}); },
-      correct:()=>{ this.tkick(t,{bus:fx,vol:.6}); this.tclap(t+.01,{bus:fx,vol:.14,wet:.4}); this.b808(33,t,.55,{bus:fx,vol:.13,to:45,at:.18,gl:.12});
-        [81,85,88,93].forEach((m,i)=>this.tbell(m,t+i*.06,{bus:fx,vol:.1,dec:.9})); this.thats(t+.3,4,.16,.05,fx); },
-      skip:()=>{ const ac=this.ac,o=ac.createOscillator(),f=ac.createBiquadFilter(),g=ac.createGain(); o.type='sawtooth'; f.type='lowpass'; f.frequency.value=900;
-        o.frequency.setValueAtTime(260,t); o.frequency.exponentialRampToValueAtTime(45,t+.28); this.env(g,t,.005,.26,.28); o.connect(f); f.connect(g); g.connect(fx); o.start(t); o.stop(t+.32);
-        this.noise(t,.12,{bus:fx,vol:.06,bp:1200}); },
-      timeup:()=>{ this.tkick(t,{bus:fx,vol:.65}); this.tclap(t,{bus:fx,vol:.18,wet:.7}); this.b808(33,t,1.8,{bus:fx,vol:.13,to:21,at:.25,gl:1.3});
-        [76,73,69,64].forEach((m,i)=>this.tbell(m,t+i*.17,{bus:fx,vol:.11,dec:i===3?2:1})); },
+      click:()=>{ this.zap(t,1800,900,.04,{bus:fx,vol:.15}); this.noise(t,.02,{bus:fx,vol:.2,hp:7000}); },
+      count:()=>{ this.tkick(t,{bus:fx,vol:.7}); this.b808(33,t,.4,{bus:fx,vol:.16}); this.stab([69,76],t,{bus:fx,vol:.035,d:.18}); },
+      go:()=>{ this.impact(t,{bus:fx,vol:.25}); this.tkick(t,{bus:fx,vol:.8}); this.tsnare(t,{bus:fx,vol:.2,wet:.5}); this.b808(45,t,1.1,{bus:fx,vol:.18,to:33,at:.05,gl:.35});
+        this.stab([57,64,69,73],t,{bus:fx,vol:.03,d:.5,cut:6000}); this.vox(76,t+.05,.35,{bus:fx,vol:.07,v:'e',bend:-3}); },
+      tick:()=>{ this.noise(t,.03,{bus:fx,vol:.35,hp:7500}); this.zap(t,2400,2000,.03,{bus:fx,vol:.05}); },
+      tock:()=>{ this.tkick(t,{bus:fx,vol:.4}); this.noise(t,.05,{bus:fx,vol:.25,bp:1900}); this.zap(t,1200,800,.06,{bus:fx,vol:.08}); },
+      correct:()=>{ this.tkick(t,{bus:fx,vol:.6}); this.tsnare(t+.01,{bus:fx,vol:.14,wet:.4}); this.b808(33,t,.5,{bus:fx,vol:.17,to:45,at:.16,gl:.12});
+        this.stab([61,64,69],t,{bus:fx,vol:.03,d:.16}); this.stab([64,69,73,76],t+.16,{bus:fx,vol:.032,d:.4,cut:7000});
+        this.zap(t+.1,600,3200,.22,{bus:fx,vol:.04}); this.thats(t+.3,4,.16,.05,fx); },
+      skip:()=>{ this.tapestop([45,57],t,.32,{bus:fx,vol:.08}); this.downer(t,.3,{bus:fx,vol:.06}); },
+      timeup:()=>{ this.tkick(t,{bus:fx,vol:.8}); this.tsnare(t,{bus:fx,vol:.18,wet:.7}); this.b808(33,t,1.8,{bus:fx,vol:.2,to:21,at:.25,gl:1.3});
+        this.tapestop([57,64,69],t,.9,{bus:fx,vol:.06}); this.downer(t,1.2,{bus:fx,vol:.06}); this.impact(t+.05,{bus:fx,vol:.2}); },
       fanfare:()=>{
         this.riser(t,.75,{bus:fx,vol:.06}); this.thats(t+.25,12,.5,.05,fx);
-        [[.75,33],[1.15,40],[1.55,45]].forEach(([d,m])=>{ this.tkick(t+d,{bus:fx,vol:.65}); this.b808(m,t+d,.4,{bus:fx,vol:.13}); });
-        [.75,1.55].forEach(d=>this.tclap(t+d,{bus:fx,vol:.2,wet:.5}));
-        [69,73,76,81,85,88,93].forEach((m,i)=>this.tbell(m,t+.75+i*.08,{bus:fx,vol:.09,dec:1.4}));
-        this.tpad([57,61,64,68,71],t+1.55,1.8,{bus:fx,vol:.03,cut:1600});
+        this.impact(t+.75,{bus:fx,vol:.18});
+        [[.75,33],[1.15,40],[1.55,45]].forEach(([d,m])=>{ this.tkick(t+d,{bus:fx,vol:.6}); this.b808(m,t+d,.4,{bus:fx,vol:.15}); });
+        [.75,1.55].forEach(d=>this.tsnare(t+d,{bus:fx,vol:.2,wet:.5}));
+        [[69,.75,.2],[73,.95,.2],[76,1.15,.2],[81,1.35,.2],[80,1.55,.3],[81,1.85,1]].forEach(([m,d,l])=>this.slead(m,t+d,l,{bus:fx,vol:.045,cut:5500,wet:.4}));
+        this.vox(81,t+1.85,.6,{bus:fx,vol:.06,v:'e',bend:-2});
+        this.spad([57,61,64,68,71],t+1.55,1.8,{bus:fx,vol:.03,cut:2600});
       },
     };
     const T=cfg.pack==='trap'?Tr:cfg.pack==='liquid'?Lq:cfg.pack==='glass'?G:F;
