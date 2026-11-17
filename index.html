@@ -514,8 +514,8 @@ select option{color:#000}
 [data-theme=glass] .final .f .p{background-image:linear-gradient(100deg,#fff,#dfe6f5 30%,#fff 50%,#b8c0d2 70%,#fff)}
 [data-theme=glass] .final .f .cr{top:-36px}
 /* радужная полоса раунда */
-[data-theme=glass] .top.pl{flex-direction:column-reverse;align-items:stretch}
-[data-theme=glass] .top.pl>.row{justify-content:flex-end}
+.top.pl{flex-direction:column-reverse;align-items:stretch}
+.top.pl>.row{justify-content:flex-end}
 [data-theme=glass] .who{position:relative;isolation:isolate;overflow:hidden;background:none;border:1.5px solid rgba(255,255,255,.65);padding:9px 18px;font-size:15px;color:#fff;text-shadow:0 1px 3px rgba(0,0,40,.75);box-shadow:0 0 24px rgba(150,120,255,.35)}
 [data-theme=glass] .who::before{content:"";position:absolute;z-index:-2;top:0;bottom:0;left:0;width:200%;background:var(--holo);background-size:50% 100%;will-change:transform;animation:slideX 7s linear infinite}
 [data-theme=glass] .who::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;box-shadow:inset 0 3px 2px rgba(255,255,255,.6),inset 0 -7px 9px rgba(0,0,50,.35)}
@@ -583,41 +583,57 @@ const TOPICS={
     ['🍐','pære','f',2],['🍍','ananas','m',1],['🥕','gulrot','f',2],['🍅','tomat','m',1],['🥔','potet','m',1],['🥒','agurk','m',2],
     ['🍞','brød','n',1],['🧀','ost','m',1],['🥚','egg','n',1],['🥛','melk','f',1],['☕','kaffe','m',1],['🍰','kake','f',1],
     ['🍕','pizza','m',1],['🍦','is','m',1],['🍫','sjokolade','m',1],['🧅','løk','m',2],['🍔','hamburger','m',1],['🌭','pølse','f',2],
-    ['🍲','suppe','f',1],['🧈','smør','n',2],['🍚','ris','m',1]]},
+    ['🍲','suppe','f',1],['🧈','smør','n',2],['🍚','ris','m',1],
+    ['🍉','vannmelon','m',1],['🍒','kirsebær','n',2],['🥑','avokado','m',2],['🌽','mais','m',1],['🥦','brokkoli','m',1],['🧄','hvitløk','m',2],['🍑','fersken','m',2],['🥥','kokosnøtt','m',2],['🥞','pannekake','f',1],['🧇','vaffel','m',1],['🍝','spagetti','m',1],['🍟','pommes frites','',2],['🍩','smultring','m',3],['🍿','popkorn','n',1],['🍯','honning','m',2],['🍵','te','m',1],['🧃','juice','m',1],['🍬','godteri','n',2],['🌶️','chili','m',2],['🥜','peanøtt','m',2],['🍤','reke','f',2],['🍪','kjeks','m',1]]},
   dyr:{name:'🐻 Dyr',w:[
     ['🐕','hund','m',1],['🐈','katt','m',1],['🐎','hest','m',1],['🐄','ku','f',1],['🐖','gris','m',1],['🐑','sau','m',2],
     ['🐭','mus','f',1],['🐦','fugl','m',1],['🐟','fisk','m',1],['🐻','bjørn','m',2],['🐺','ulv','m',2],['🦊','rev','m',2],
     ['🐇','kanin','m',2],['🦉','ugle','f',3],['🦅','ørn','m',3],['🦁','løve','f',2],['🐘','elefant','m',1],['🐒','ape','m',2],
     ['🐍','slange','m',2],['🐸','frosk','m',2],['🐋','hval','m',2],['🦆','and','f',2],['🐔','høne','f',2],['🦋','sommerfugl','m',3],
-    ['🐝','bie','f',2],['🕷️','edderkopp','m',3],['🐢','skilpadde','f',3]]},
+    ['🐝','bie','f',2],['🕷️','edderkopp','m',3],['🐢','skilpadde','f',3],
+    ['🐿️','ekorn','n',2],['🦔','pinnsvin','n',3],['🐌','snegle','m',2],['🐞','marihøne','f',3],['🦒','sjiraff','m',1],['🦓','sebra','m',1],['🐪','kamel','m',1],['🐧','pingvin','m',1],['🐙','blekksprut','m',2],['🦀','krabbe','m',2],['🐬','delfin','m',1],['🦈','hai','m',1],['🐊','krokodille','m',1],['🦜','papegøye','m',2],['🦇','flaggermus','f',3],['🐜','maur','m',2],['🦟','mygg','m',3],['🐐','geit','f',2],['🐓','hane','m',2]]},
   klaer:{name:'👕 Klær',w:[
     ['🧥','jakke','f',1],['👕','t-skjorte','f',1],['👖','bukse','f',1],['🧦','sokk','m',1],['👗','kjole','m',2],['👟','sko','m',1],
     ['🧣','skjerf','n',2],['🧤','vott','m',3],['🎩','hatt','m',1],['👔','skjorte','f',2],['👓','briller','',2],['👢','støvel','m',3],
-    ['🎒','ryggsekk','m',2],['👜','veske','f',2],['💍','ring','m',1],['🧢','caps','m',2],['👙','bikini','m',2],['🩳','shorts','m',1]]},
+    ['🎒','ryggsekk','m',2],['👜','veske','f',2],['💍','ring','m',1],['🧢','caps','m',2],['👙','bikini','m',2],['🩳','shorts','m',1],
+    ['🥾','tursko','m',2],['⌚','armbåndsur','n',3],['👛','lommebok','f',2],['🧶','garn','n',2],['🦺','refleksvest','m',3],['👒','solhatt','m',2]]},
   hjemme:{name:'🏠 Hjemme',w:[
     ['🏠','hus','n',1],['🪑','stol','m',1],['🛏️','seng','f',1],['🚪','dør','f',1],['🪟','vindu','n',1],['💡','lyspære','f',3],
     ['🔑','nøkkel','m',2],['⏰','klokke','f',1],['📱','mobil','m',1],['📖','bok','f',1],['🔪','kniv','m',2],['🥄','skje','f',2],
     ['🛋️','sofa','m',1],['🪞','speil','n',2],['🚿','dusj','m',2],['🚽','toalett','n',1],['🪥','tannbørste','m',3],['✂️','saks','f',3],
-    ['✏️','blyant','m',2],['💻','datamaskin','m',2],['📺','tv','m',1],['🎁','gave','m',2],['🕯️','lys','n',2],['🧸','bamse','m',3]]},
+    ['✏️','blyant','m',2],['💻','datamaskin','m',2],['📺','tv','m',1],['🎁','gave','m',2],['🕯️','lys','n',2],['🧸','bamse','m',3],
+    ['🧹','kost','m',2],['🪣','bøtte','f',2],['🧺','kurv','m',2],['🛁','badekar','n',2],['🧽','svamp','m',2],['🧻','dopapir','n',2],['🖼️','bilde','n',2],['🪴','potteplante','f',2],['🔨','hammer','m',1],['🪜','stige','m',2],['🧲','magnet','m',2],['🔋','batteri','n',2],['🧯','brannslukker','n',3],['🛒','handlevogn','f',2],['🫖','tekanne','f',2],['🍳','stekepanne','f',2],['🧊','isbit','m',2]]},
   transport:{name:'🚗 Transport',w:[
     ['🚗','bil','m',1],['🚌','buss','m',1],['🚂','tog','n',1],['✈️','fly','n',1],['⛵','seilbåt','m',3],['🚲','sykkel','m',1],
     ['🚋','trikk','m',2],['🚢','skip','n',2],['🏍️','motorsykkel','m',2],['🚜','traktor','m',2],['🚚','lastebil','m',3],['🚁','helikopter','n',2],
-    ['🚀','rakett','m',2],['🚕','drosje','m',2],['🚑','ambulanse','m',2],['🚒','brannbil','m',3],['🚓','politibil','m',3],['🛴','sparkesykkel','m',3]]},
+    ['🚀','rakett','m',2],['🚕','drosje','m',2],['🚑','ambulanse','m',2],['🚒','brannbil','m',3],['🚓','politibil','m',3],['🛴','sparkesykkel','m',3],
+    ['🛵','moped','m',2],['🛶','kano','m',2],['🚤','speedbåt','m',2],['🚦','trafikklys','n',2],['⛽','bensinstasjon','m',3],['🚠','taubane','m',3],['🚇','T-bane','m',2]]},
   natur:{name:'🌲 Natur og vær',w:[
     ['☀️','sol','f',1],['🌙','måne','m',1],['⭐','stjerne','f',1],['☁️','sky','f',2],['🌧️','regn','',1],['❄️','snø','',1],
     ['⚡','lyn','n',3],['🌈','regnbue','m',2],['🌳','tre','n',1],['🌸','blomst','m',1],['🏔️','fjell','n',1],['🌋','vulkan','m',2],
     ['🏖️','strand','f',2],['☂️','paraply','m',2],['💨','vind','m',2],['⛄','snømann','m',2],['🍄','sopp','m',2],['🍁','blad','n',2],
-    ['🔥','ild','m',2],['🌊','bølge','f',3],['🌵','kaktus','m',2],['🌍','jord','f',2]]},
+    ['🔥','ild','m',2],['🌊','bølge','f',3],['🌵','kaktus','m',2],['🌍','jord','f',2],
+    ['🌻','solsikke','f',2],['🌹','rose','f',1],['🌷','tulipan','m',1],['🌲','grantre','n',2],['🪨','stein','m',1],['🏝️','øy','f',2],['🌅','soloppgang','m',3],['🌱','spire','f',3],['🌴','palme','m',1],['🌰','kastanje','m',2]]},
   kropp:{name:'✋ Kroppen',w:[
     ['👁️','øye','n',1],['👂','øre','n',1],['👃','nese','f',1],['👄','munn','m',1],['✋','hånd','f',1],['🦶','fot','m',1],
-    ['🦵','bein','n',2],['🦷','tann','f',1],['❤️','hjerte','n',1],['🧠','hjerne','m',2],['💪','arm','m',1],['😛','tunge','f',2]]},
+    ['🦵','bein','n',2],['🦷','tann','f',1],['❤️','hjerte','n',1],['🧠','hjerne','m',2],['💪','arm','m',1],['😛','tunge','f',2],
+    ['👍','tommel','m',2],['🧔','skjegg','n',2],['👶','baby','m',1],['👣','fotspor','n',3]]},
   fritid:{name:'⚽ Fritid',w:[
     ['⚽','fotball','m',1],['🎸','gitar','m',1],['🎹','piano','n',2],['🎿','ski','f',1],['⛸️','skøyte','f',3],['⛺','telt','n',2],
     ['🎈','ballong','m',2],['📷','kamera','n',1],['🎤','mikrofon','m',2],['🥁','tromme','f',2],['🎻','fiolin','m',3],['🎲','terning','m',3],
-    ['🧩','puslespill','n',3],['🪁','drage','m',3],['🏆','pokal','m',3],['🎧','hodetelefoner','',3],['🎣','fiskestang','f',3]]},
+    ['🧩','puslespill','n',3],['🪁','drage','m',3],['🏆','pokal','m',3],['🎧','hodetelefoner','',3],['🎣','fiskestang','f',3],
+    ['🏀','ball','m',1],['🎨','palett','m',3],['🎮','spillkontroll','m',2],['🏓','bordtennis','m',2],['🛹','skateboard','n',2],['🪀','jojo','m',2],['♟️','sjakk','m',2],['🃏','kortspill','n',3]]},
+  verb:{name:'🏃 Verb (å …)',w:[
+    ['🏊','svømme','v',1],['🚴','sykle','v',1],['🏃','løpe','v',1],['😴','sove','v',1],['💃','danse','v',1],['🗣️','snakke','v',2],['📞','ringe','v',2],['✍️','skrive','v',1],['👋','vinke','v',2],['🧗','klatre','v',2],['🏋️','trene','v',2],['📚','lese','v',1],['⛷️','gå på ski','v',2],['🤔','tenke','v',3],['😭','gråte','v',2],['😂','le','v',2]]},
+  folelser:{name:'😀 Følelser',w:[
+    ['😀','glad','',1],['😢','trist','',1],['😡','sint','',1],['😱','redd','',2],['🥱','trøtt','',2],['🤒','syk','',2],['😍','forelsket','',2],['😮','overrasket','',3],['🥶','kald','',1],['🥵','varm','',1],['😳','flau','',3],['🤢','kvalm','',3]]},
+  skole:{name:'🏫 Skole',w:[
+    ['🏫','skole','m',1],['📏','linjal','m',2],['🖍️','fargestift','m',2],['📎','binders','m',3],['🧮','kuleramme','f',3],['🖊️','penn','m',1],['📓','skrivebok','f',2],['🔬','mikroskop','n',2],['📅','kalender','m',2],['🧑‍🏫','lærer','m',1],['🧑‍🎓','student','m',2],['🔢','tall','n',2]]},
+  jul:{name:'🎄 Jul',w:[
+    ['🎄','juletre','n',1],['🎅','julenisse','m',1],['🦌','reinsdyr','n',2],['🔔','bjelle','f',2],['🛷','slede','m',2],['🎀','sløyfe','f',3],['🎶','julesang','m',3],['🧑‍🎄','nissemor','f',3]]},
 };
 const WORDS=[]; Object.entries(TOPICS).forEach(([t,o])=>o.w.forEach(([e,no,g,d])=>WORDS.push({e,no,g,d,t})));
-const ART={m:'en',f:'ei/en',n:'et'};
+const ART={m:'en',f:'ei/en',n:'et',v:'å'};
 const artOf=w=>ART[w.g]||'';
 const withArt=w=>(artOf(w)?artOf(w)+' ':'')+w.no;
 const DIFF={easy:[1],mix:[1,2,3],hard:[2,3]};
@@ -627,7 +643,7 @@ const DIFF={easy:[1],mix:[1,2,3],hard:[2,3]};
    Fluent Emoji (Microsoft, лицензия MIT), чтобы картинки выглядели одинаково на любом экране. */
 const APPLE=/Mac|iPhone|iPad|iPod/.test(navigator.platform||'')||/Mac OS X|iPhone|iPad/.test(navigator.userAgent||'');
 const ecode=e=>[...e].map(c=>c.codePointAt(0).toString(16)).filter(x=>x!=='fe0f').join('-');
-const glassPics=()=>cfg.theme==='glass';                 // в теме Glass — стеклянные картинки на любом устройстве
+const glassPics=()=>true;                 // стеклянные картинки во всех стилях (один набор — меньше файлов)
 const esrc=e=>(glassPics()?'g/':'e/')+ecode(e)+'.webp?v=2';     // ?v=2 — обновлённые картинки, а не старые из кэша
 const em=(e,cls)=>(APPLE&&!glassPics())?`<span class="${cls}">${e}</span>`:`<img class="${cls}" src="${esrc(e)}" alt="${e}" draggable="false" onerror="emFail(this)">`;
 function emFail(i){ const s=document.createElement('span'); s.className=i.className; s.textContent=i.alt; i.replaceWith(s); }
@@ -646,8 +662,14 @@ const ANIM={
   '💍':'twinkle','🎩':'hover','👓':'tilt','🍦':'jelly','☕':'float','🍲':'float',
   '⚽':'hop','🎸':'rock','🎹':'jelly','🎿':'tilt','⛸️':'crawl','⛺':'float','🎈':'hover','📷':'flash','🎤':'rock','🥁':'beat',
   '🎻':'sway','🎲':'shakeG','🧩':'tilt','🪁':'fly','🏆':'twinkle','🎧':'beat','🎣':'swing',
+  '🐬':'swim','🦈':'swim','🐙':'wave','🦀':'crawl','🐌':'crawl','🐞':'crawl','🐜':'crawl','🦟':'flutter','🦇':'fly','🦜':'fly','🐧':'rock','🐊':'crawl','🦒':'sway','🐿️':'hop',
+  '🔔':'ring','🎄':'sway','🛷':'drive','🎅':'rock','🦌':'hop','🎀':'jelly','🎶':'float','🍪':'spin',
+  '🌻':'sway','🌷':'sway','🌹':'sway','🌲':'sway','🌴':'sway','🌱':'squash','🌅':'glow','🏝️':'float','🪨':'rock',
+  '🏃':'bump','🚴':'bump','🏊':'swim','💃':'rock','👋':'waveHand','📞':'ring','😴':'float','🧗':'hover','🏋️':'squash','⛷️':'tilt','😂':'shakeG','😭':'jelly','🤔':'tilt',
+  '🛵':'bump','🛶':'wave','🚤':'wave','🚠':'swing','🚦':'glow','🚇':'drive','🔋':'pulse','🧲':'shakeG','🧯':'shakeG','🔨':'swing','🧹':'sway','🪜':'tilt','🛒':'drive',
+  '🏀':'hop','🪀':'dangle','🛹':'drive','🎮':'shakeG','🍯':'jelly','🧊':'shine','🍉':'jelly','🌶️':'flicker','👶':'rock','👍':'pulse',
 };
-const TOPIC_ANIM={mat:'jelly',dyr:'hop',klaer:'swing',hjemme:'tilt',transport:'drive',natur:'float',kropp:'pulse',fritid:'hop'};
+const TOPIC_ANIM={mat:'jelly',dyr:'hop',klaer:'swing',hjemme:'tilt',transport:'drive',natur:'float',kropp:'pulse',fritid:'hop',verb:'bump',folelser:'pulse',skole:'tilt',jul:'twinkle'};
 const animFor=w=>'a-'+(ANIM[w.e]||TOPIC_ANIM[w.t]||'float');
 
 /* ================== НАСТРОЙКИ (запоминаются) ================== */
