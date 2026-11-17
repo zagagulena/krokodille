@@ -674,19 +674,20 @@ const animFor=w=>'a-'+(ANIM[w.e]||TOPIC_ANIM[w.t]||'float');
 
 /* ================== НАСТРОЙКИ (запоминаются) ================== */
 const LS='krokodille_v2';
-const DEF={names:['BLÅ','RØD'],secs:60,rounds:1,topic:'all',diff:'mix',theme:'glass',pack:'liquid',v:4,music:true,fx:true,showWord:false,perf:'auto',mode:'pic',seen:[],history:[]};
+const DEF={names:['BLÅ','RØD'],secs:60,rounds:1,topic:'all',diff:'mix',theme:'glass',pack:'trap',v:5,music:true,fx:true,showWord:false,perf:'auto',mode:'pic',seen:[],history:[]};
 const THEMES=[
-  {id:'glass',name:'Glass',pack:'liquid',bg:'radial-gradient(circle at 12% 15%,#4b2a86cc,transparent 55%),radial-gradient(circle at 92% 60%,#7a4416cc,transparent 55%),radial-gradient(circle at 15% 95%,#12605ecc,transparent 55%),#0b0c11',card:'linear-gradient(90deg,#ff5fb0,#4f8cff,#3fe0d0,#ffe14f);box-shadow:inset 0 2px 1px #fffc,0 0 0 1px #fff9',ink:'#fff',dots:['#4f8cff','#ff4f6a','#e9ecf5']},
+  {id:'glass',name:'Glass',pack:'trap',bg:'radial-gradient(circle at 12% 15%,#4b2a86cc,transparent 55%),radial-gradient(circle at 92% 60%,#7a4416cc,transparent 55%),radial-gradient(circle at 15% 95%,#12605ecc,transparent 55%),#0b0c11',card:'linear-gradient(90deg,#ff5fb0,#4f8cff,#3fe0d0,#ffe14f);box-shadow:inset 0 2px 1px #fffc,0 0 0 1px #fff9',ink:'#fff',dots:['#4f8cff','#ff4f6a','#e9ecf5']},
   {id:'nordlys',name:'Nordlys',pack:'marimba',bg:'linear-gradient(135deg,#2de2a6,#3b82f6 45%,#a855f7 75%,#ec4899)',card:'#fff',ink:'#fff',dots:['#1e5bd8','#e0244b','#2de2a6']},
   {id:'neon',name:'Neon',pack:'arcade',bg:'linear-gradient(#090916 55%,#3a0a4a)',card:'#12122b;box-shadow:0 0 0 2px #00f0ff',ink:'#00f0ff',dots:['#2f7bff','#ff3b6b','#ff2bd6']},
   {id:'hygge',name:'Hygge',pack:'hygge',bg:'linear-gradient(#f4eadb 70%,#b4c9ac 70%)',card:'#fffaf1;box-shadow:0 0 0 2px #e6d8c3',ink:'#3a2f25',dots:['#3d6b8e','#b5443d','#5c8a5a']},
   {id:'fjord',name:'Fjord',pack:'marimba',bg:'linear-gradient(#bfe0f5 55%,#6fb2cf 55%)',card:'#fff',ink:'#12324a',dots:['#1d4ed8','#dc2626','#0e9aa7']},
 ];
-const PACKS=[['liquid','Krystall'],['glass','Klassisk'],['marimba','Marimba'],['hygge','Rolig'],['arcade','Arkade']];
+const PACKS=[['trap','Trap 808'],['liquid','Krystall'],['glass','Klassisk'],['marimba','Marimba'],['hygge','Rolig'],['arcade','Arkade']];
 function load(){
   let d={}; try{d=JSON.parse(localStorage.getItem(LS))||{};}catch(e){}
   const c=Object.assign({},DEF,d);
-  if(d.v!==4){ c.theme='glass'; c.pack='liquid'; c.v=4; }   // новый стиль по умолчанию
+  if(!d.v||d.v<4) c.theme='glass';                     // новый стиль по умолчанию
+  if(d.v!==5){ c.pack='trap'; c.v=5; }                  // новый звук: trap 808
   if(!Array.isArray(c.names)||c.names.length!==2) c.names=[...DEF.names];
   if(!THEMES.some(t=>t.id===c.theme)) c.theme=DEF.theme;
   if(!PACKS.some(p=>p[0]===c.pack)) c.pack=DEF.pack;
@@ -717,7 +718,7 @@ const Snd={
     this.fx=ac.createGain(); this.fx.gain.value=cfg.fx?.9:0; this.fx.connect(this.out);
     return true;
   },
-  mLevel(){ return cfg.music?.5*({hygge:1.7,arcade:1.1,glass:1.5,liquid:1.5}[cfg.pack]||1):0; },   // выравнивание громкости наборов
+  mLevel(){ return cfg.music?.5*({hygge:1.7,arcade:1.1,glass:1.5,liquid:1.5,trap:1.5}[cfg.pack]||1):0; },   // выравнивание громкости наборов
   setMusic(){ if(this.music) this.music.gain.setTargetAtTime(this.mLevel(),this.ac.currentTime,.08); },
   setFx(on){ if(this.fx) this.fx.gain.setTargetAtTime(on?.9:0,this.ac.currentTime,.05); },
   hz:m=>440*Math.pow(2,(m-69)/12),
@@ -846,9 +847,60 @@ const Snd={
     this.env(g,t,.003,vol,dec);o.connect(f);o2.connect(g2);g2.connect(f);f.connect(g);this.send(g,bus,wet);
     o.start(t);o2.start(t);o.stop(t+dec+.1);o2.stop(t+dec+.1);
   },
+  /* --- trap: 808 со скольжением, панчевый кик, клэп, хэты с роллами, тёмный колокол --- */
+  sat(bus){                                                         // перегруз 808: гармоники слышны даже в динамике телефона
+    this._sat=this._sat||new Map(); if(this._sat.has(bus)) return this._sat.get(bus);
+    const ac=this.ac,ws=ac.createWaveShaper(),lp=ac.createBiquadFilter(),n=1024,c=new Float32Array(n),k=2.6;
+    for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(k*x)/Math.tanh(k);}
+    const pre=ac.createGain(),post=ac.createGain();pre.gain.value=3.2;post.gain.value=.15;
+    ws.curve=c;lp.type='lowpass';lp.frequency.value=1800;pre.connect(ws);ws.connect(lp);lp.connect(post);post.connect(bus);this._sat.set(bus,pre);return pre;
+  },
+  b808(m,t,d,{vol=.3,bus=this.music,to=null,at=0,gl=.08}={}){
+    const ac=this.ac,o=ac.createOscillator(),g=ac.createGain(),f=this.hz(m);
+    o.frequency.setValueAtTime(f*2.4,t);o.frequency.exponentialRampToValueAtTime(f,t+.035);
+    if(to!==null){o.frequency.setValueAtTime(f,t+at);o.frequency.exponentialRampToValueAtTime(this.hz(to),t+at+gl);}
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.006);g.gain.setTargetAtTime(vol*.55,t+.06,d*.6);
+    g.gain.setValueAtTime(vol*.5,t+Math.max(.07,d-.03));g.gain.linearRampToValueAtTime(0,t+d);
+    o.connect(g);g.connect(this.sat(bus));o.start(t);o.stop(t+d+.02);
+  },
+  tkick(t,{vol=.8,bus=this.music}={}){
+    const ac=this.ac,o=ac.createOscillator(),g=ac.createGain();
+    o.frequency.setValueAtTime(170,t);o.frequency.exponentialRampToValueAtTime(46,t+.07);
+    g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+.24);o.connect(g);g.connect(bus);o.start(t);o.stop(t+.26);
+    this.noise(t,.012,{vol:vol*.35,bp:3500,bus});
+  },
+  tclap(t,{vol=.2,bus=this.music,wet=.35}={}){
+    [0,.009,.019].forEach((d,i)=>this.noise(t+d,i===2?.16:.02,{vol,bp:1700,bus,wet:i===2?wet:0}));
+    const ac=this.ac,o=ac.createOscillator(),g=ac.createGain();o.type='triangle';
+    o.frequency.setValueAtTime(230,t);o.frequency.exponentialRampToValueAtTime(170,t+.06);this.env(g,t,.002,vol*.9,.07);o.connect(g);g.connect(bus);o.start(t);o.stop(t+.1);
+  },
+  thats(t,n,span,vol,bus=this.music){ for(let i=0;i<n;i++) this.noise(t+i*span/n,.025,{vol:vol*(.55+.45*i/n),hp:7800,bus}); },
+  tbell(m,t,{vol=.1,dec=1.1,bus=this.music,wet=.45}={}){            // тёмный FM-колокол
+    const ac=this.ac,f=this.hz(m),o=ac.createOscillator(),mo=ac.createOscillator(),mg=ac.createGain(),g=ac.createGain(),lp=ac.createBiquadFilter();
+    mo.frequency.value=f*3.5;mg.gain.setValueAtTime(f*2.2,t);mg.gain.exponentialRampToValueAtTime(f*.08,t+dec*.5);
+    mo.connect(mg);mg.connect(o.frequency);o.frequency.value=f;lp.type='lowpass';lp.frequency.value=4200;
+    this.env(g,t,.003,vol,dec);o.connect(lp);lp.connect(g);this.send(g,bus,wet);o.start(t);mo.start(t);o.stop(t+dec+.1);mo.stop(t+dec+.1);
+  },
+  tpad(notes,t,d,{vol=.02,bus=this.music,cut=900}={}){              // тёмный тянущийся аккорд
+    const ac=this.ac,f=ac.createBiquadFilter(),g=ac.createGain();f.type='lowpass';f.frequency.setValueAtTime(cut*.6,t);f.frequency.linearRampToValueAtTime(cut,t+d*.5);f.frequency.linearRampToValueAtTime(cut*.6,t+d);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+d*.25);g.gain.setValueAtTime(vol,t+d*.75);g.gain.linearRampToValueAtTime(0,t+d+.1);
+    f.connect(g);this.send(g,bus,.6);
+    notes.forEach(m=>(Perf.lite?[0]:[-10,10]).forEach(c=>{const o=ac.createOscillator();o.type='sawtooth';o.frequency.value=this.hz(m);o.detune.value=c;o.connect(f);o.start(t);o.stop(t+d+.15);}));
+  },
+  riser(t,d,{vol=.05,bus=this.fx}={}){
+    const ac=this.ac;if(!this.nb)this.noise(t,.001,{vol:0});
+    const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=this.nb;s.loop=true;f.type='bandpass';f.Q.value=2;
+    f.frequency.setValueAtTime(500,t);f.frequency.exponentialRampToValueAtTime(7000,t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+d);g.gain.linearRampToValueAtTime(0,t+d+.03);
+    s.connect(f);f.connect(g);this.send(g,bus,.4);s.start(t);s.stop(t+d+.05);
+  },
+  // басовая линия трека: A → G# → F# (↗G) → E → D → D#↗E, 2 такта по 16 шагов
+  TRAP808:[[0,33,6,32,3.6],[6,30,6,31,5.2],[12,28,6],[18,26,10],[28,27,4,28,.7]],
+  trap808(S,b,t,dt,vol){ const n=S.TRAP808.find(x=>x[0]===b); if(!n) return false;
+    S.b808(n[1],t,dt*n[2]-.01,{vol,to:n[3]??null,at:dt*(n[4]||0),gl:dt*.6}); return true; },
   // «голос» текущего набора музыки — им играют эффекты и праздничная тема
   pluck(m,t,vol=.2,bus=this.fx){
     if(cfg.pack==='liquid') this.drop(m,t,{vol:vol*.9,dec:.45,bus});
+    else if(cfg.pack==='trap') this.tbell(m,t,{vol:vol*.7,dec:.6,bus});
     else if(cfg.pack==='glass') this.piano(m,t,{vol:vol*.85,dec:1.1,bus});
     else if(cfg.pack==='arcade') this.chip(m,t,.16,{vol:vol*.42,bus});
     else if(cfg.pack==='hygge') this.ep(m,t,{vol:vol*1.3,dec:.7,bus});
@@ -857,6 +909,40 @@ const Snd={
 
   /* --- музыка: три набора, в каждом фон (menu) и раунд (round) --- */
   packs:{
+    trap:{
+      // фон: тёмный пэд ля мажор над скользящим 808, колокол с эхом, приглушённый бит; ~77 BPM half-time
+      menu:{bpm:77,steps:64,swing:0,play(S,s,t,dt){
+        const b=s%32,h=s>>5;
+        if(b===0||b===16)S.tpad([57,61,64,b?66:68],t,dt*16,{vol:.024,cut:900});
+        S.trap808(S,b,t,dt,.085);
+        if(b===0||b===18)S.tkick(t,{vol:.32}); if(b===8||b===24)S.tclap(t,{vol:.09,wet:.5});
+        if(b%2===0)S.noise(t,.025,{vol:b%4?.008:.014,hp:8000});
+        const mel=[{0:76,6:78,12:80,18:81,24:78,28:80},{0:81,6:76,12:73,18:69,24:73,28:76}][h][b];
+        if(mel){ S.tbell(mel,t,{vol:.11,dec:1.4}); if(!Perf.lite)S.tbell(mel,t+dt*3,{vol:.035,dec:.9,wet:.7}); }
+      }},
+      // раунд: полный трэп-бит — кик в линию 808, клэп на 3-ю долю, хэты 1/16 с роллами
+      round:{bpm:80,steps:64,swing:0,play(S,s,t,dt){
+        const b=s%32,h=s>>5;
+        if(b===0)S.tpad([57,61,64,68],t,dt*32,{vol:.016,cut:1100});
+        S.trap808(S,b,t,dt,.12);
+        const k={0:1,6:.75,12:.85,18:1,22:.55,28:.8}[b]; if(k)S.tkick(t,{vol:.6*k});
+        if(b===8||b===24)S.tclap(t,{vol:.17}); if(b===31&&h)S.tclap(t,{vol:.05,wet:.2});
+        if(b===14)S.thats(t,3,dt*2,.03); else if(b===30)S.thats(t,6,dt*2,.028); else if(b!==15&&b!==31)S.noise(t,.03,{vol:b%2?.012:.022,hp:7800});
+        if(b===22)S.noise(t,.2,{vol:.016,hp:7000});
+        const mel=[{0:76,2:73,4:76,6:78,9:76,12:80,15:76,18:78,21:81,24:78,26:76,28:80},{0:81,2:80,4:76,6:73,9:76,12:71,15:73,18:69,21:73,24:76,26:78,28:76}][h][b];
+        if(mel){ S.tbell(mel,t,{vol:.095,dec:.7}); if(!Perf.lite)S.tbell(mel+12,t+dt*3,{vol:.025,dec:.4,wet:.7}); }
+      }},
+      // праздник: тот же бит ярче, колокольное арпеджио
+      party:{bpm:84,steps:64,swing:0,play(S,s,t,dt){
+        const b=s%32,h=s>>5;
+        if(b===0)S.tpad([61,64,69,71],t,dt*32,{vol:.014,cut:1500});
+        S.trap808(S,b,t,dt,.115);
+        const k={0:1,6:.75,12:.85,18:1,22:.55,28:.8}[b]; if(k)S.tkick(t,{vol:.58*k});
+        if(b===8||b===24)S.tclap(t,{vol:.17});
+        if(b===14||b===30)S.thats(t,4,dt*2,.03); else if(b!==15&&b!==31)S.noise(t,.03,{vol:b%2?.012:.022,hp:7800});
+        if(b%2===0)S.tbell([81,85,88,93,88,85,81,76][(b>>1)%8],t,{vol:.06,dec:.35,wet:.3});
+      }},
+    },
     liquid:{
       // фон: переливающийся пэд, капли с эхом и стеклянные перезвоны; ре мажор
       menu:{bpm:84,steps:64,swing:0,play(S,s,t,dt){
@@ -971,7 +1057,7 @@ const Snd={
     const name=kind==='party'?'party':cfg.pack+':'+kind;
     if(this.loop&&this.loop.name===name) return;
     this.stop(.12);
-    const T=kind==='party'?this.party:this.packs[cfg.pack][kind], self=this;
+    const T=kind==='party'?(this.packs[cfg.pack].party||this.party):this.packs[cfg.pack][kind], self=this;
     const L=this.loop={name,kind,step:0,bar:0,next:this.ac.currentTime+.2,paused:false};
     const sched=()=>{
       if(self.loop!==L) return;
@@ -1052,7 +1138,29 @@ const Snd={
         this.noise(t+.7,1.6,{bus:fx,vol:.03,hp:7000,wet:.8});
       },
     };
-    const T=cfg.pack==='liquid'?Lq:cfg.pack==='glass'?G:F;
+    const Tr={
+      click:()=>{ this.noise(t,.022,{bus:fx,vol:.22,hp:6500}); this.tbell(93,t,{bus:fx,vol:.09,dec:.12,wet:.1}); },
+      count:()=>{ this.tkick(t,{bus:fx,vol:.7}); this.b808(33,t,.4,{bus:fx,vol:.13}); this.tbell(81,t,{bus:fx,vol:.1,dec:.5}); },
+      go:()=>{ this.tkick(t,{bus:fx,vol:.65}); this.tclap(t,{bus:fx,vol:.2,wet:.5}); this.b808(45,t,1.1,{bus:fx,vol:.13,to:33,at:.05,gl:.35});
+        [69,73,76,81].forEach((m,i)=>this.tbell(m,t+i*.05,{bus:fx,vol:.09,dec:1.2})); this.noise(t,.35,{bus:fx,vol:.04,hp:7000,wet:.4}); },
+      tick:()=>{ this.noise(t,.035,{bus:fx,vol:.45,hp:7000}); this.tbell(96,t,{bus:fx,vol:.06,dec:.05,wet:0}); },
+      tock:()=>{ this.tbell(84,t,{bus:fx,vol:.22,dec:.1,wet:0}); this.noise(t,.05,{bus:fx,vol:.3,bp:1900}); this.tkick(t,{bus:fx,vol:.35}); },
+      correct:()=>{ this.tkick(t,{bus:fx,vol:.6}); this.tclap(t+.01,{bus:fx,vol:.14,wet:.4}); this.b808(33,t,.55,{bus:fx,vol:.13,to:45,at:.18,gl:.12});
+        [81,85,88,93].forEach((m,i)=>this.tbell(m,t+i*.06,{bus:fx,vol:.1,dec:.9})); this.thats(t+.3,4,.16,.05,fx); },
+      skip:()=>{ const ac=this.ac,o=ac.createOscillator(),f=ac.createBiquadFilter(),g=ac.createGain(); o.type='sawtooth'; f.type='lowpass'; f.frequency.value=900;
+        o.frequency.setValueAtTime(260,t); o.frequency.exponentialRampToValueAtTime(45,t+.28); this.env(g,t,.005,.26,.28); o.connect(f); f.connect(g); g.connect(fx); o.start(t); o.stop(t+.32);
+        this.noise(t,.12,{bus:fx,vol:.06,bp:1200}); },
+      timeup:()=>{ this.tkick(t,{bus:fx,vol:.65}); this.tclap(t,{bus:fx,vol:.18,wet:.7}); this.b808(33,t,1.8,{bus:fx,vol:.13,to:21,at:.25,gl:1.3});
+        [76,73,69,64].forEach((m,i)=>this.tbell(m,t+i*.17,{bus:fx,vol:.11,dec:i===3?2:1})); },
+      fanfare:()=>{
+        this.riser(t,.75,{bus:fx,vol:.06}); this.thats(t+.25,12,.5,.05,fx);
+        [[.75,33],[1.15,40],[1.55,45]].forEach(([d,m])=>{ this.tkick(t+d,{bus:fx,vol:.65}); this.b808(m,t+d,.4,{bus:fx,vol:.13}); });
+        [.75,1.55].forEach(d=>this.tclap(t+d,{bus:fx,vol:.2,wet:.5}));
+        [69,73,76,81,85,88,93].forEach((m,i)=>this.tbell(m,t+.75+i*.08,{bus:fx,vol:.09,dec:1.4}));
+        this.tpad([57,61,64,68,71],t+1.55,1.8,{bus:fx,vol:.03,cut:1600});
+      },
+    };
+    const T=cfg.pack==='trap'?Tr:cfg.pack==='liquid'?Lq:cfg.pack==='glass'?G:F;
     try{T[name]&&T[name]();}catch(e){}
   },
 };
