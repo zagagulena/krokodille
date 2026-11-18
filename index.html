@@ -718,14 +718,17 @@ const Snd={
     this.rev=ac.createConvolver(); this.rev.buffer=ir; const rg=ac.createGain(); rg.gain.value=.25; this.rev.connect(rg); rg.connect(this.out);
     this.music=ac.createGain(); this.music.gain.value=this.mLevel(); this.music.connect(this.out);
     this.fx=ac.createGain(); this.fx.gain.value=cfg.fx?.9:0; this.fx.connect(this.out);
+    // отдельные «посылы» в реверб для музыки и эффектов — иначе хвост реверба звучал даже при выключенном звуке
+    this.mWet=ac.createGain(); this.mWet.gain.value=cfg.music?1:0; this.mWet.connect(this.rev);
+    this.fWet=ac.createGain(); this.fWet.gain.value=cfg.fx?1:0; this.fWet.connect(this.rev);
     return true;
   },
   mLevel(){ return cfg.music?.5*({hygge:1.7,arcade:1.1,glass:1.5,liquid:1.5,trap:1.5}[cfg.pack]||1):0; },   // выравнивание громкости наборов
-  setMusic(){ if(this.music) this.music.gain.setTargetAtTime(this.mLevel(),this.ac.currentTime,.08); },
-  setFx(on){ if(this.fx) this.fx.gain.setTargetAtTime(on?.9:0,this.ac.currentTime,.05); },
+  setMusic(){ if(!this.music) return; const t=this.ac.currentTime; this.music.gain.cancelScheduledValues(t); this.music.gain.setTargetAtTime(this.mLevel(),t,.08); this.mWet.gain.setTargetAtTime(cfg.music?1:0,t,.08); if(!cfg.music) this.stop(.1); },
+  setFx(on){ if(!this.fx) return; const t=this.ac.currentTime; this.fx.gain.setTargetAtTime(on?.9:0,t,.05); this.fWet.gain.setTargetAtTime(on?1:0,t,.05); },
   hz:m=>440*Math.pow(2,(m-69)/12),
   env(g,t,a,peak,d){ g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(peak,t+a); g.gain.exponentialRampToValueAtTime(.0001,t+a+d); },
-  send(node,bus,wet=.3){ node.connect(bus); if(wet){const s=this.ac.createGain();s.gain.value=wet;node.connect(s);s.connect(this.rev);} },
+  send(node,bus,wet=.3){ node.connect(bus); if(wet){const s=this.ac.createGain();s.gain.value=wet;node.connect(s);s.connect(bus===this.fx?this.fWet:this.mWet);} },
   /* --- инструменты --- */
   mallet(m,t,{vol=.2,bus=this.music,dec=.45,wet=.35}={}){
     const ac=this.ac,f=this.hz(m),g=ac.createGain(),o1=ac.createOscillator(),o2=ac.createOscillator(),g2=ac.createGain();
