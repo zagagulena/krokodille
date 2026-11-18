@@ -471,7 +471,9 @@ select option{color:#000}
 [data-theme=glass] .burst .ttl{animation:sheen 1.6s ease-in-out infinite}
 [data-theme=glass] .hudbox.time.hurry b{background-image:linear-gradient(180deg,#ffd0b0,#ff3d6f);animation:bump .5s infinite}
 [data-theme=glass] .hudbox b.bump{animation:bump .5s cubic-bezier(.3,1.8,.5,1)}
-[data-theme=glass] .wordline{background:var(--pastel);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:slide 5s linear infinite}
+/* градиент — на новом span для каждого слова: на Android текст с background-clip в изначально пустом блоке не перерисовывался */
+[data-theme=glass] .wordline .wtx{display:inline-block;padding:0 .1em .12em;background:var(--pastel);background-size:200% 100%;background-position:30% 0;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:wpop .45s cubic-bezier(.3,1.5,.5,1)}
+@keyframes wpop{from{transform:scale(.85);opacity:0}}
 [data-theme=glass] .wordline .art{font-style:italic;-webkit-text-fill-color:transparent;color:transparent}
 [data-theme=glass] .burst .bword .l,[data-theme=glass] .burst .bword .art{background-image:var(--pastel);background-size:900% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
 [data-theme=glass] .burst .bword .art{font-style:italic;background-position:0 0}
@@ -554,7 +556,7 @@ body.lite .lqf{animation:breathe 7s ease-in-out infinite}
 body.lite .hudbox .lqf{animation-duration:5s}
 body.lite .burst .veil,body.lite .pauseov,body.lite .timeup{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:rgba(6,7,12,.92)}
 body.lite .emo,body.lite .bemo{filter:none!important}
-body.lite .logo h1,body.lite .burst .ttl,body.lite .wordline{animation:none!important}
+body.lite .logo h1,body.lite .burst .ttl,body.lite .wordline .wtx{animation:none!important}
 body.lite button.go{animation:none!important}
 body.lite .hudbox.time.hurry b{animation:none!important}
 body.lite #bg .l1,body.lite #bg .l2{animation:none!important}
@@ -1776,9 +1778,10 @@ function drawPic(){
   }
   const p=$('#pic'); if(!p) return;
   p.innerHTML=`<span class="enter">${em(w.e,'emo '+animFor(w))}</span><div class="shadow"></div>`;
-  $('#wl').innerHTML=cfg.showWord?wordHtml(w):'';
+  $('#wl').innerHTML=wlHtml(w);
   $('#lvl').innerHTML=[1,2,3].map(i=>`<i class="${i<=w.d?'on':''}"></i>`).join('');
 }
+const wlHtml=w=>cfg.showWord?`<span class="wtx">${wordHtml(w)}</span>`:'';
 const wordHtml=w=>`${artOf(w)?`<span class="art">${artOf(w)}</span>`:''}${esc(w.no)}`;
 // очки: 100 за ответ + до 100 за скорость.
 // Объяснение: полный бонус до 2 с, ноль после 15 с. Рисование дольше: полный бонус до 5 с, ноль после 40 с.
@@ -1810,7 +1813,7 @@ function togglePause(){
   document.body.classList.toggle('paused',play.paused); if(play.paused) peek(false); RC.push();
   if(play.paused) Snd.pause(); else Snd.resume();
 }
-function toggleWord(){ if(isDraw()) return; cfg.showWord=!cfg.showWord; save(); if(screen==='play'&&play&&!play.over){ $('#wl').innerHTML=cfg.showWord?wordHtml(curItem().w):''; } }
+function toggleWord(){ if(isDraw()) return; cfg.showWord=!cfg.showWord; save(); if(screen==='play'&&play&&!play.over){ $('#wl').innerHTML=wlHtml(curItem().w); } }
 function timeUp(){
   play.over=true; play.left=0; RC.push();
   const t=turn(), it=curItem(); if(it&&it.res===null){ it.res='miss'; it.t=play.elapsed-play.picStart; if(isDraw()) it.d=Draw.snap(); }
