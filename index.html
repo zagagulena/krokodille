@@ -56,10 +56,12 @@ body{color:var(--fg);font:700 16px/1.35 var(--font);letter-spacing:var(--ls);bac
 /* ---------- фоны тем ---------- */
 #bg{position:fixed;inset:0;z-index:-1;overflow:hidden;background:var(--bg);pointer-events:none}
 #bg div{position:absolute}
-[data-theme=glass] #bg .l1{inset:-25%;background:radial-gradient(42% 44% at 14% 16%,#4b2a86 0,transparent 72%),radial-gradient(44% 48% at 90% 52%,#7a4416 0,transparent 72%),radial-gradient(48% 44% at 16% 90%,#12605e 0,transparent 72%),radial-gradient(38% 38% at 70% 6%,#1c3f8a 0,transparent 72%);opacity:.7;will-change:transform;animation:gdrift 26s ease-in-out infinite alternate}
+[data-theme=glass] #bg .l1{inset:-6%;background:radial-gradient(42% 44% at 14% 16%,#4b2a86 0,transparent 72%),radial-gradient(44% 48% at 90% 52%,#7a4416 0,transparent 72%),radial-gradient(48% 44% at 16% 90%,#12605e 0,transparent 72%),radial-gradient(38% 38% at 70% 6%,#1c3f8a 0,transparent 72%);opacity:.7;animation:gpulse 13s ease-in-out infinite alternate}
+/* фон больше не вращается: огромный вращающийся слой на Android рвался на тайлы и давал полосы; мелкий шум убирает «ступеньки» в тёмных градиентах */
 [data-theme=glass] #bg .l2{inset:0;background:radial-gradient(60% 40% at 50% 45%,rgba(255,255,255,.035),transparent 70%)}
-[data-theme=glass] #bg::after{content:"";position:absolute;inset:0;background:radial-gradient(130% 100% at 50% 40%,transparent 45%,rgba(0,0,0,.55))}
+[data-theme=glass] #bg::after{content:"";position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),radial-gradient(130% 100% at 50% 40%,transparent 45%,rgba(0,0,0,.55))}
 @keyframes gdrift{from{transform:rotate(0) scale(1)}to{transform:rotate(16deg) scale(1.14)}}
+@keyframes gpulse{from{opacity:.55}to{opacity:.85}}
 [data-theme=nordlys] #bg .l1{inset:-50vmax;background:conic-gradient(from 0deg at 50% 50%,#2de2a6,#3b82f6,#a855f7,#ec4899,#2de2a6);filter:blur(80px);opacity:.5;animation:rot 26s linear infinite}
 [data-theme=nordlys] #bg .l2{inset:0;background-image:radial-gradient(2px 2px at 20% 30%,#fff8,transparent),radial-gradient(1.5px 1.5px at 70% 20%,#fff9,transparent),radial-gradient(1.5px 1.5px at 40% 70%,#fff6,transparent),radial-gradient(2px 2px at 85% 60%,#fff7,transparent),radial-gradient(1px 1px at 10% 85%,#fff8,transparent),radial-gradient(1.5px 1.5px at 55% 45%,#fff5,transparent);animation:twk 4s ease-in-out infinite alternate}
 [data-theme=neon] #bg .l1{left:-60%;right:-60%;bottom:0;height:52%;background-image:linear-gradient(#ff2bd688 2px,transparent 2px),linear-gradient(90deg,#ff2bd688 2px,transparent 2px);background-size:64px 64px;transform:perspective(380px) rotateX(64deg);transform-origin:50% 100%;animation:grid 1.4s linear infinite;-webkit-mask-image:linear-gradient(transparent,#000 70%);mask-image:linear-gradient(transparent,#000 70%)}
@@ -160,7 +162,7 @@ details.rules li{margin-bottom:6px}
 .paused .picbox{filter:blur(28px)}
 .enter{display:inline-block;animation:enter .55s cubic-bezier(.25,1.6,.45,1) both}
 @keyframes enter{0%{transform:scale(0) rotate(-25deg);opacity:0}100%{transform:scale(1) rotate(0)}}
-.emo{display:inline-block;font-size:clamp(118px,29vh,270px);line-height:1;filter:drop-shadow(0 10px 12px rgba(20,15,50,.22));will-change:transform;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.emo{display:inline-block;font-size:clamp(118px,29vh,270px);line-height:1;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
 .shadow{position:absolute;bottom:8px;left:50%;width:120px;height:14px;margin-left:-60px;border-radius:50%;background:rgba(43,35,80,.13);animation:shd 1.4s ease-in-out infinite}
 [data-theme=neon] .shadow{background:#00f0ff33}
 @keyframes shd{50%{transform:scaleX(.8);opacity:.6}}
@@ -551,7 +553,9 @@ select option{color:#000}
 [data-theme=glass] .burst .pts{color:#fff;background:var(--holo);background-size:200% 100%;border:1.5px solid rgba(255,255,255,.7);text-shadow:0 1px 3px rgba(0,0,40,.7);box-shadow:inset 0 3px 2px rgba(255,255,255,.6),inset 0 -7px 9px rgba(0,0,50,.35),0 0 24px rgba(150,120,255,.45);animation:enter .5s .25s cubic-bezier(.3,1.7,.5,1) both}
 [data-theme=glass] .steps li::before{background:conic-gradient(#cfd6e6,#fff,#ffc6ec,#b9a4ff,#a8f2e4,#fff,#cfd6e6)}
 [data-theme=glass] .shadow{background:radial-gradient(closest-side,rgba(150,170,255,.35),transparent)}
-[data-theme=glass] .emo{filter:drop-shadow(0 16px 22px rgba(0,0,0,.55)) drop-shadow(0 0 30px rgba(140,150,255,.2))}
+/* без filter: drop-shadow на анимированной картинке — на Android он давал полосы-артефакты по краям */
+.picbox>.enter{position:relative}
+[data-theme=glass] .picbox::before{content:'';position:absolute;left:50%;top:50%;width:min(62%,330px);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(140,150,255,.13),transparent);pointer-events:none}
 [data-theme=glass] .cvbox{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 2px 8px rgba(0,0,0,.55)}
 [data-theme=glass] .toast{background:rgba(20,22,32,.9);color:#fff;border:1.5px solid rgba(255,255,255,.4)}
 /* ================= ОБЛЕГЧЁННЫЙ РЕЖИМ (слабые телефоны) =================
@@ -650,7 +654,7 @@ const DIFF={easy:[1],mix:[1,2,3],hard:[2,3]};
 const APPLE=/Mac|iPhone|iPad|iPod/.test(navigator.platform||'')||/Mac OS X|iPhone|iPad/.test(navigator.userAgent||'');
 const ecode=e=>[...e].map(c=>c.codePointAt(0).toString(16)).filter(x=>x!=='fe0f').join('-');
 const glassPics=()=>true;                 // стеклянные картинки во всех стилях (один набор — меньше файлов)
-const esrc=e=>(glassPics()?'g/':'e/')+ecode(e)+'.webp?v=2';     // ?v=2 — обновлённые картинки, а не старые из кэша
+const esrc=e=>(glassPics()?'g/':'e/')+ecode(e)+'.webp?v=3';     // ?v=2 — обновлённые картинки, а не старые из кэша
 const em=(e,cls)=>(APPLE&&!glassPics())?`<span class="${cls}">${e}</span>`:`<img class="${cls}" src="${esrc(e)}" alt="${e}" draggable="false" onerror="emFail(this)">`;
 function emFail(i){ const s=document.createElement('span'); s.className=i.className; s.textContent=i.alt; i.replaceWith(s); }
 const preloaded=[]; function preload(list){ if(APPLE&&!glassPics()) return; list.forEach(e=>{ const i=new Image(); i.src=esrc(e); preloaded.push(i); }); }
@@ -1284,7 +1288,7 @@ function makePad(name,sel,hintSel,toolsSel,o){ return {
     if(this.ro) this.ro.disconnect();
     this.ro=('ResizeObserver' in window)?new ResizeObserver(()=>this.resize()):null;
     if(this.ro) this.ro.observe(this.cv.parentElement);
-    this.resize();
+    this.w=this.h=0; this.resize();   // новый холст (например, у второй команды) всегда заново подгоняем под размер
     const cv=this.cv;
     cv.addEventListener('pointerdown',e=>this.down(e));
     cv.addEventListener('pointermove',e=>this.move(e));
@@ -1293,7 +1297,7 @@ function makePad(name,sel,hintSel,toolsSel,o){ return {
   },
   resize(){
     if(!this.cv||!this.cv.isConnected) return;
-    const r=this.cv.getBoundingClientRect(); if(!r.width||!r.height) return;
+    const r={width:this.cv.clientWidth,height:this.cv.clientHeight}; if(!r.width||!r.height) return;   // размер без учёта анимации появления (transform)
     if(Math.abs(r.width-this.w)<1&&Math.abs(r.height-this.h)<1&&this.cv.width) return;
     this.dpr=Math.min(window.devicePixelRatio||1,Perf.lite?1.5:2);
     this.w=r.width; this.h=r.height; this.cv.width=Math.round(r.width*this.dpr); this.cv.height=Math.round(r.height*this.dpr);
@@ -1306,7 +1310,7 @@ function makePad(name,sel,hintSel,toolsSel,o){ return {
     else { this.k=W; this.ox=0; this.oy=0; }
   },
   setView(A){ A=(A>0.25&&A<4)?+A:0; if(Math.abs(A-this.view)<0.002) return; this.view=A; this.geom(); this.redraw(); },
-  pt(e){ const r=this.rect; return [(e.clientX-r.left-this.ox)/this.k,(e.clientY-r.top-this.oy)/this.k]; },
+  pt(e){ const r=this.rect, sx=this.w/(r.width||this.w), sy=this.h/(r.height||this.h); return [((e.clientX-r.left)*sx-this.ox)/this.k,((e.clientY-r.top)*sy-this.oy)/this.k]; },
   down(e){
     if(!this.can()||this.pid!==null) return;
     e.preventDefault(); this.pid=e.pointerId; try{this.cv.setPointerCapture(e.pointerId);}catch(_){}
