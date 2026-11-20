@@ -684,7 +684,7 @@ const animFor=w=>'a-'+(ANIM[w.e]||TOPIC_ANIM[w.t]||'float');
 
 /* ================== НАСТРОЙКИ (запоминаются) ================== */
 const LS='krokodille_v2';
-const DEF={names:['BLÅ','RØD'],secs:60,rounds:1,topic:'all',diff:'mix',theme:'glass',pack:'trap',v:5,music:true,fx:true,showWord:false,perf:'auto',mode:'pic',seen:[],history:[]};
+const DEF={names:['BLÅ','RØD'],secs:60,cards:10,rounds:1,topic:'all',diff:'mix',theme:'glass',pack:'trap',v:5,music:true,fx:true,showWord:false,perf:'auto',mode:'pic',seen:[],history:[]};
 const THEMES=[
   {id:'glass',name:'Glass',pack:'trap',bg:'radial-gradient(circle at 12% 15%,#4b2a86cc,transparent 55%),radial-gradient(circle at 92% 60%,#7a4416cc,transparent 55%),radial-gradient(circle at 15% 95%,#12605ecc,transparent 55%),#0b0c11',card:'linear-gradient(90deg,#ff5fb0,#4f8cff,#3fe0d0,#ffe14f);box-shadow:inset 0 2px 1px #fffc,0 0 0 1px #fff9',ink:'#fff',dots:['#4f8cff','#ff4f6a','#e9ecf5']},
   {id:'nordlys',name:'Nordlys',pack:'marimba',bg:'linear-gradient(135deg,#2de2a6,#3b82f6 45%,#a855f7 75%,#ec4899)',card:'#fff',ink:'#fff',dots:['#1e5bd8','#e0244b','#2de2a6']},
@@ -703,6 +703,8 @@ function load(){
   if(!PACKS.some(p=>p[0]===c.pack)) c.pack=DEF.pack;
   if(c.topic!=='all'&&!TOPICS[c.topic]) c.topic='all';
   if(!DIFF[c.diff]) c.diff='mix';
+  if(![0,30,45,60,90,120].includes(c.secs)) c.secs=60;
+  if(![5,10,15].includes(c.cards)) c.cards=10;
   if(!['auto','full','lite'].includes(c.perf)) c.perf='auto';
   if(!['pic','draw'].includes(c.mode)) c.mode='pic';
   if(!Array.isArray(c.seen)) c.seen=[]; if(!Array.isArray(c.history)) c.history=[];
@@ -1550,7 +1552,7 @@ const RC={
     if(game&&['ready','countdown','play','turnEnd'].includes(screen)){ const t=turn();
       Object.assign(st,{team:t.team,round:t.round,rounds:cfg.rounds,ts:t.score,ok:t.items.filter(i=>i.res==='ok').length}); }
     if(screen==='play'&&play){
-      Object.assign(st,{left:Math.max(0,Math.round(play.left)),total:play.total,paused:play.paused,anim:play.anim,over:play.over,wid:curWid()});
+      Object.assign(st,{left:Math.max(0,Math.round(play.left)),total:play.total,n:play.idx+1,cards:play.cards,paused:play.paused,anim:play.anim,over:play.over,wid:curWid()});
       const it=game.turns[game.ti].items[play.idx]; if(it) st.w={e:it.w.e,no:it.w.no};
     }
     if(screen==='results'){ const [a,b]=game.scores; st.win=a===b?-1:(a>b?0:1); }
@@ -1687,6 +1689,7 @@ const R={
   },
   tick(){
     const st=this.st, el=$('#rtime'); if(!st||!el||st.scr!=='play') return;
+    if(st.total===0){ const v=`${+st.n||1}/${+st.cards||0}`; if(el._v!==v){ el._v=v; el.textContent=v; } return; }
     const run=!(st.paused||st.anim||st.over), left=Math.max(0,(st.left||0)-(run?Date.now()-this.stAt:0)), sec=Math.ceil(left/1000);
     if(el._v!==sec){ el._v=sec; el.textContent=sec; const box=el.closest('.hudbox'); if(box) box.classList.toggle('hurry',sec<=10); }
   },
@@ -1738,7 +1741,7 @@ function vRemote(){
   if(st.scr==='results') return head+bar+`<div class="card center"><h2>${st.win<0?'Uavgjort!':`${names[st.win===1?1:0]} vant! 🏆`}</h2><button class="go full big" onclick="rcmd('again')">🔁 SPILL IGJEN</button></div>`;
   if(st.scr!=='play') return head+`<div class="card center"><div class="spin"></div></div>`;
   const stat=`<div class="rstat"><div class="who t${team}">${names[team]} • ${(+st.round||0)+1}/${+st.rounds||1}</div>
-    <div class="hudbox time"><small>TID</small><b id="rtime">–</b></div><div class="hudbox"><small>POENG</small><b id="rpts">${+st.ts||0}</b></div></div><div class="rpaused">PAUSE</div>`;
+    <div class="hudbox time"><small>${st.total===0?'BILDE':'TID'}</small><b id="rtime">–</b></div><div class="hudbox"><small>POENG</small><b id="rpts">${+st.ts||0}</b></div></div><div class="rpaused">PAUSE</div>`;
   const wordTxt=w?`${em(w.e,'remo')}<b>${wordHtml(w)}</b>`:'<b>…</b>';
   const btns=`<div class="rbtns"><button class="glass rbusy" onclick="rcmd('skip')">HOPP OVER →</button><button class="glass" id="rpause" data-rpause onclick="rcmd('pause')">${st.paused?'FORTSETT ▶':'PAUSE'}</button></div>`;
   if(st.mode==='draw'&&R.dm==='screen') return head+stat+`<div class="card center rword ${R.hide?'hidew':''}"><div class="rsecret">${wordTxt}</div><div class="mute small" style="margin-top:6px">${ICO.screen} Tegn dette på skjermen – bare du ser ordet</div>
@@ -1766,7 +1769,7 @@ function newGame(){
   const {decks,note}=buildDecks();
   const turns=[]; for(let r=0;r<cfg.rounds;r++)(r%2?[1,0]:[0,1]).forEach(t=>turns.push({team:t,round:r,items:[],score:0}));
   game={decks,turns,ti:0,scores:[0,0],mode:cfg.mode}; play=null;
-  preload(decks.flat(2).map(w=>w.e).concat('🏆','🤝','👑','⏰'));
+  preload(decks.flat(2).map(w=>w.e).concat('🏆','🤝','👑','⏰','👍'));
   screen='ready'; render(); if(note) toast(note);
 }
 function startTurn(){
@@ -1775,8 +1778,8 @@ function startTurn(){
   later(beginPlay,CD_MS);
 }
 function beginPlay(){
-  const total=cfg.secs*1000;
-  play={total,left:total,elapsed:0,idx:-1,picStart:0,anim:false,paused:false,over:false,last:performance.now(),lastSec:null};
+  const total=cfg.secs*1000, t=turn(), cards=Math.min(cfg.cards,game.decks[t.round][t.team].length);
+  play={total,cards,left:total,elapsed:0,idx:-1,picStart:0,anim:false,paused:false,over:false,last:performance.now(),lastSec:null};
   screen='play'; render(); nextPic(true);
   Snd.accel=0; if(cfg.music) Snd.play('round');
 }
@@ -1784,6 +1787,7 @@ function nextPic(first){
   const t=turn(), deck=game.decks[t.round][t.team];
   play.idx++; const w=deck[play.idx%deck.length];
   t.items.push({w,res:null,pts:0,t:0}); play.picStart=play.elapsed; RC.clearCard();
+  if(untimed()){ const tm=$('#tm'); if(tm) tm.textContent=`${play.idx+1}/${play.cards}`; }
   if(!cfg.seen.includes(w.no)) cfg.seen.push(w.no);
   drawPic(); RC.push();
 }
@@ -1806,8 +1810,11 @@ const wlHtml=w=>cfg.showWord?`<span class="wtx">${wordHtml(w)}</span>`:'';
 const wordHtml=w=>`${artOf(w)?`<span class="art">${artOf(w)}</span>`:''}${esc(w.no)}`;
 // очки: 100 за ответ + до 100 за скорость.
 // Объяснение: полный бонус до 2 с, ноль после 15 с. Рисование дольше: полный бонус до 5 с, ноль после 40 с.
-const pointsFor=ms=>{ const [a,b]=isDraw()?[5000,40000]:[2000,15000]; return 100+Math.round(100*Math.min(1,Math.max(0,1-(ms-a)/(b-a)))); };
+const pointsFor=ms=>{ if(untimed()) return 100; const [a,b]=isDraw()?[5000,40000]:[2000,15000]; return 100+Math.round(100*Math.min(1,Math.max(0,1-(ms-a)/(b-a)))); };
 
+const untimed=()=>!!play&&play.total===0;                    // режим без времени: раунд = фиксированное число картинок
+const usedCards=()=>turn().items.filter(i=>i.res).length;
+function nextOrEnd(){ if(untimed()&&usedCards()>=play.cards) timeUp(true); else nextPic(); }
 function correct(){
   if(screen!=='play'||!play||play.anim||play.paused||play.over) return;
   const t=turn(), it=curItem(), ms=play.elapsed-play.picStart, pts=pointsFor(ms);
@@ -1818,7 +1825,7 @@ function correct(){
   showCorrect(it.w,pts,it.d);
   const sc=$('#sc'), ok=$('#okc');
   if(sc){ sc.textContent=t.score; bump(sc); } if(ok){ ok.textContent=t.items.filter(x=>x.res==='ok').length; bump(ok); }
-  later(()=>{ play.anim=false; play.last=performance.now(); nextPic(); Snd.resume(); },ANIM_MS);
+  later(()=>{ play.anim=false; play.last=performance.now(); nextOrEnd(); if(!play.over) Snd.resume(); },ANIM_MS);
 }
 function skip(){
   if(screen!=='play'||!play||play.anim||play.paused||play.over) return;
@@ -1826,7 +1833,7 @@ function skip(){
   Snd.sfx('skip');
   const e=$('#pic .enter'); if(e){ e.className='skipout'; }
   if(isDraw()){ it.d=Draw.snap(); peek(false); const cb=$('.cvbox'); if(cb) cb.classList.add('wipe'); }
-  play.anim=true; later(()=>{ play.anim=false; play.last=performance.now(); nextPic(); },220);
+  play.anim=true; later(()=>{ play.anim=false; play.last=performance.now(); nextOrEnd(); },220);
 }
 function togglePause(){
   if(screen!=='play'||!play||play.anim||play.over) return;
@@ -1835,13 +1842,13 @@ function togglePause(){
   if(play.paused) Snd.pause(); else Snd.resume();
 }
 function toggleWord(){ if(isDraw()) return; cfg.showWord=!cfg.showWord; save(); if(screen==='play'&&play&&!play.over){ $('#wl').innerHTML=wlHtml(curItem().w); } }
-function timeUp(){
+function timeUp(done){                       // done — без времени: все картинки пройдены
   play.over=true; play.left=0; RC.push();
   const t=turn(), it=curItem(); if(it&&it.res===null){ it.res='miss'; it.t=play.elapsed-play.picStart; if(isDraw()) it.d=Draw.snap(); }
   peek(false);
   game.scores[t.team]+=t.score; save();
-  Snd.stop(.1); Snd.sfx('timeup');
-  const d=document.createElement('div'); d.className='timeup'; d.id='timeup'; d.innerHTML=`<b>${em('⏰','ti')}<span>TIDEN ER UTE!</span></b>`; document.body.appendChild(d);
+  Snd.stop(.1); Snd.sfx(done?'correct':'timeup');
+  const d=document.createElement('div'); d.className='timeup'; d.id='timeup'; d.innerHTML=done?`<b>${em('👍','ti')}<span>FERDIG!</span></b>`:`<b>${em('⏰','ti')}<span>TIDEN ER UTE!</span></b>`; document.body.appendChild(d);
   later(()=>{ d.remove(); screen='turnEnd'; render(); if(cfg.music) Snd.play('menu'); },1900);
 }
 function nextTurn(){
@@ -2003,7 +2010,8 @@ function vMenu(){
   <div class="card">
     <h2>Spillet</h2>
     <label class="l">Modus</label>${seg('mode',[['pic','Forklar bildet'],['draw','Tegn ordet']])}
-    <label class="l">Tid per runde</label>${seg('secs',[[30,'30 s'],[45,'45 s'],[60,'1 min'],[90,'1,5 min'],[120,'2 min']])}
+    <label class="l">Tid per runde</label>${seg('secs',[[30,'30 s'],[45,'45 s'],[60,'1 min'],[90,'1,5 min'],[120,'2 min'],[0,'∞']])}
+    ${cfg.secs===0?`<div class="mute small" style="margin:6px 2px 0">Uten tid: runden varer til alle bildene er gjettet eller hoppet over.</div><label class="l">Bilder per lag</label>${seg('cards',[[5,'5'],[10,'10'],[15,'15']])}`:''}
     <label class="l">Runder per lag</label>${seg('rounds',[[1,'1'],[2,'2'],[3,'3']])}
     <label class="l">Nivå</label>${seg('diff',[['easy','Lett'],['mix','Blandet'],['hard','Vanskelig']])}
     <label class="l">Tema <span style="font-weight:700">· ${n} ord</span></label>
@@ -2032,7 +2040,7 @@ function vMenu(){
     <li>Resten av laget gjetter høyt på norsk. Ved riktig svar trykker tegneren <b>RIKTIG</b>. Tiden står stille mens svaret vises.</li>`:`<li>Én fra laget skal gjette og sitter med ryggen mot skjermen.</li>
     <li>Resten av laget ser bildet og forklarer det på norsk – uten å si selve ordet.</li>
     <li>Når gjetteren svarer riktig, trykker spillelederen <b>RIKTIG</b>. Tiden står stille mens svaret vises.</li>`}
-    <li>Hvert riktig svar gir 100 poeng + opptil 100 ekstra for fart.</li>
+    <li>${cfg.secs?'Hvert riktig svar gir 100 poeng + opptil 100 ekstra for fart.':'Uten tid: hvert lag får like mange bilder, og hvert riktig svar gir 100 poeng.'}</li>
     <li>Lagene får ulike bilder, men med samme vanskelighetsgrad i samme rekkefølge.</li>
     <li>Laget med flest poeng vinner!</li></ol></details>
   ${cfg.history.length?`<div class="card dim hist"><b>Siste spill</b>${cfg.history.map(h=>`<div><span>${esc(h.n[0])} <b>${h.s[0]}</b></span><span><b>${h.s[1]}</b> ${esc(h.n[1])}</span></div>`).join('')}</div>`:''}`;
@@ -2050,7 +2058,7 @@ function vReady(){
     <h2 style="margin:6px 0 0;font-size:24px">Gjør dere klare!</h2>
     ${isDraw()?`<ol class="steps"><li>Velg én som skal tegne.</li><li>Tegneren holder inne øyet for å se ordet – de andre ser bort!</li><li>Tegn uten bokstaver og uten å snakke. Laget gjetter på norsk.</li></ol>`
     :`<ol class="steps"><li>Velg én som skal gjette.</li><li>Gjetteren sitter med ryggen mot skjermen.</li><li>Resten av laget forklarer bildet på norsk – uten å si ordet!</li></ol>`}
-    <span class="pill">⏱ ${cfg.secs} sekunder</span>
+    <span class="pill">${cfg.secs?`⏱ ${cfg.secs} sekunder`:`∞ Uten tid · ${cfg.cards} bilder`}</span>
   </div>
   <button class="go full big" onclick="startTurn()">VI ER KLARE! ▶</button>
   <p class="hint">Begge lag får ulike bilder med samme vanskelighetsgrad.</p>`;
@@ -2064,7 +2072,7 @@ function vPlay(){
   const t=turn();
   return `<div class="top pl"><div class="who t${t.team}">${esc(cfg.names[t.team])} • RUNDE ${t.round+1}/${cfg.rounds}</div>
     <div class="row" style="gap:6px">${sndBtns()}<button class="sm glass" onclick="togglePause()" title="Pause"><span class="pi"></span></button><button class="sm glass" onclick="quit()" title="Avslutt">✕</button></div></div>
-  <div class="hud"><div class="hudbox"><small>POENG</small><b id="sc">${t.score}</b></div><div class="hudbox"><small>RIKTIGE</small><b id="okc">0</b></div><div class="hudbox time" id="tbox"><small>TID</small><b id="tm">${cfg.secs}</b></div></div>
+  <div class="hud"><div class="hudbox"><small>POENG</small><b id="sc">${t.score}</b></div><div class="hudbox"><small>RIKTIGE</small><b id="okc">0</b></div><div class="hudbox time" id="tbox"><small>${cfg.secs?'TID':'BILDE'}</small><b id="tm">${cfg.secs||''}</b></div></div>
   ${isDraw()?`<div class="stage draw"><div class="dhead"><span class="rbadge rb-d">${ICO.phone} Tegner på telefonen</span><span class="rbadge rb-w">${ICO.phone} Ordet vises på telefonen</span><button class="peek new" id="peek" onpointerdown="peek(true,event)" onpointerup="peek(false)" onpointercancel="peek(false)" oncontextmenu="return false">${ICO.eye}<span class="lg">Hold for å se ordet</span><span class="sh">Se ordet</span></button><div class="row"><div class="lvl" id="lvl" title="Vanskelighetsgrad"></div><button class="tb" onclick="Draw.undo()" title="Angre">${ICO.undo}</button><button class="tb" onclick="Draw.wipe()" title="Tøm">${ICO.trash}</button></div></div>
     <div class="cvbox"><canvas id="cv"></canvas><div class="cvhint" id="cvhint">${ICO.pen}Tegn her</div><div class="peekov" id="peekov"></div></div>
     <div class="timer" id="tbar"><span class="tclip"><i id="bar"></i></span></div></div>
@@ -2110,7 +2118,7 @@ function vResults(){
 function setName(i,v){ cfg.names[i]=v; save(); }
 function setCfg(k,v){
   cfg[k]=v;
-  if(k==='mode'&&v==='draw'&&cfg.secs<90){ cfg.secs=90; later(()=>toast('Tegning tar tid – runden er satt til 1,5 min'),50); }
+  if(k==='mode'&&v==='draw'&&cfg.secs&&cfg.secs<90){ cfg.secs=90; later(()=>toast('Tegning tar tid – runden er satt til 1,5 min'),50); }
   if(k==='theme'){ cfg.pack=THEMES.find(t=>t.id===v).pack; }
   save(); render();
   if(k==='theme'||k==='pack'){ Snd.stop(.1); if(cfg.music) Snd.play('menu'); }
@@ -2152,6 +2160,10 @@ document.addEventListener('keydown',e=>{
   if(screen==='play'&&play&&!play.over){
     const dt=Math.min(250,Math.max(0,now-play.last)); play.last=now;
     if(!play.anim&&!play.paused){ play.left-=dt; play.elapsed+=dt; }
+    if(play.total===0){                     // без времени: полоса показывает, сколько картинок осталось
+      const bar=$('#bar'), fr=(1-usedCards()/play.cards).toFixed(3); if(bar&&bar._v!==fr){ bar._v=fr; bar.style.transform=`translateX(-${((1-fr)*100).toFixed(1)}%)`; }
+      Snd.accel=0; requestAnimationFrame(frame); return;
+    }
     const left=Math.max(0,play.left), bar=$('#bar'), tm=$('#tm'), hurry=left<10000;
     const fr=(left/play.total).toFixed(3), sc=Math.ceil(left/1000);
     if(bar&&bar._v!==fr){ bar._v=fr; bar.style.transform=`translateX(-${((1-fr)*100).toFixed(1)}%)`; }
