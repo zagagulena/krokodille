@@ -539,6 +539,7 @@ select option{color:#000}
 /* таймер: жидкость в стеклянной трубке */
 [data-theme=glass] .timer{height:22px;border:1.5px solid rgba(255,255,255,.4);border-radius:999px;box-shadow:inset 0 3px 5px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.15);padding:2.5px;background:rgba(0,0,0,.35)}
 [data-theme=glass] .timer i{position:relative;overflow:hidden;border-radius:999px;background:none;will-change:transform;box-shadow:0 0 14px rgba(150,120,255,.6)}
+[data-theme=glass] .timer.untimed i::before{animation:none!important;transform:translateX(calc(var(--ph,0)*-33.333%))}
 [data-theme=glass] .timer i::before{content:"";position:absolute;top:0;bottom:0;left:0;width:300%;will-change:transform;animation:slideX3 3.2s linear infinite;
   background:radial-gradient(40% 120% at 30% 50%,rgba(255,255,255,.5),transparent 60%),radial-gradient(30% 120% at 75% 50%,rgba(255,255,255,.32),transparent 60%),var(--holo);background-size:33.334% 100%}
 [data-theme=glass] .timer.hurry i::before{background:radial-gradient(40% 120% at 30% 50%,rgba(255,255,255,.5),transparent 60%),linear-gradient(90deg,#ff9a3d,#ff2d6f,#ff9a3d);background-size:33.334% 100%;animation-duration:1.2s}
@@ -1880,7 +1881,7 @@ function showCorrect(w,pts,drawing){
     ps+=`<span class="pt" style="--dx:${Math.cos(a)*r}px;--dy:${Math.sin(a)*r}px;--rot:${Math.random()*360-180}deg;animation-delay:${Math.random()*.1}s">${parts[i%parts.length]}</span>`; }
   const letters=[...w.no].map((c,i)=>`<span class="l" style="animation-delay:${.12+i*.04}s;background-position:${(i+1)*11%100}% 0">${esc(c)}</span>`).join('');
   d.innerHTML=`<div class="veil"></div><div class="glow"></div>${ps}<div class="txt">${drawing?`<div class="cmp"><img class="dthumb" src="${drawing}" alt="Tegningen"><span class="arr">→</span>${em(w.e,'bemo happy')}</div>`:`<div>${em(w.e,'bemo happy')}</div>`}<b class="ttl">RIKTIG!</b>
-    <div class="bword">${artOf(w)?`<span class="art">${artOf(w)}</span>`:''}${letters}</div><span class="pts">+${pts}</span><em class="frz"><span class="pi"></span> tiden står stille</em></div>`;
+    <div class="bword">${artOf(w)?`<span class="art">${artOf(w)}</span>`:''}${letters}</div><span class="pts">+${pts}</span>${untimed()?'':'<em class="frz"><span class="pi"></span> tiden står stille</em>'}</div>`;
   document.body.appendChild(d); setTimeout(()=>d.remove(),ANIM_MS);
 }
 let confRAF=null;
@@ -2037,9 +2038,9 @@ function vMenu(){
   <details class="card dim rules"><summary>Slik spiller dere</summary><ol>
     ${cfg.mode==='draw'?`<li>Én fra laget tegner. Hen holder inne <b>øyet</b> for å se ordet – ingen andre skal se. Med fjernkontroll kan ordet vises på telefonen i stedet, så ingen trenger å snu seg.</li>
     <li>Tegneren tegner ordet med fingeren – uten bokstaver, tall eller å snakke.</li>
-    <li>Resten av laget gjetter høyt på norsk. Ved riktig svar trykker tegneren <b>RIKTIG</b>. Tiden står stille mens svaret vises.</li>`:`<li>Én fra laget skal gjette og sitter med ryggen mot skjermen.</li>
+    <li>Resten av laget gjetter høyt på norsk. Ved riktig svar trykker tegneren <b>RIKTIG</b>.${cfg.secs?' Tiden står stille mens svaret vises.':''}</li>`:`<li>Én fra laget skal gjette og sitter med ryggen mot skjermen.</li>
     <li>Resten av laget ser bildet og forklarer det på norsk – uten å si selve ordet.</li>
-    <li>Når gjetteren svarer riktig, trykker spillelederen <b>RIKTIG</b>. Tiden står stille mens svaret vises.</li>`}
+    <li>Når gjetteren svarer riktig, trykker spillelederen <b>RIKTIG</b>.${cfg.secs?' Tiden står stille mens svaret vises.':''}</li>`}
     <li>${cfg.secs?'Hvert riktig svar gir 100 poeng + opptil 100 ekstra for fart.':'Uten tid: hvert lag får like mange bilder, og hvert riktig svar gir 100 poeng.'}</li>
     <li>Lagene får ulike bilder, men med samme vanskelighetsgrad i samme rekkefølge.</li>
     <li>Laget med flest poeng vinner!</li></ol></details>
@@ -2075,9 +2076,9 @@ function vPlay(){
   <div class="hud"><div class="hudbox"><small>POENG</small><b id="sc">${t.score}</b></div><div class="hudbox"><small>RIKTIGE</small><b id="okc">0</b></div><div class="hudbox time" id="tbox"><small>${cfg.secs?'TID':'BILDE'}</small><b id="tm">${cfg.secs||''}</b></div></div>
   ${isDraw()?`<div class="stage draw"><div class="dhead"><span class="rbadge rb-d">${ICO.phone} Tegner på telefonen</span><span class="rbadge rb-w">${ICO.phone} Ordet vises på telefonen</span><button class="peek new" id="peek" onpointerdown="peek(true,event)" onpointerup="peek(false)" onpointercancel="peek(false)" oncontextmenu="return false">${ICO.eye}<span class="lg">Hold for å se ordet</span><span class="sh">Se ordet</span></button><div class="row"><div class="lvl" id="lvl" title="Vanskelighetsgrad"></div><button class="tb" onclick="Draw.undo()" title="Angre">${ICO.undo}</button><button class="tb" onclick="Draw.wipe()" title="Tøm">${ICO.trash}</button></div></div>
     <div class="cvbox"><canvas id="cv"></canvas><div class="cvhint" id="cvhint">${ICO.pen}Tegn her</div><div class="peekov" id="peekov"></div></div>
-    <div class="timer" id="tbar"><span class="tclip"><i id="bar"></i></span></div></div>
+    <div class="timer ${cfg.secs?'':'untimed'}" id="tbar"><span class="tclip"><i id="bar"></i></span></div></div>
   <div class="tools" id="tools">${Draw.toolsHtml()}</div>`
-  :`<div class="stage"><div class="lvl" id="lvl" title="Vanskelighetsgrad"></div><div class="picbox" id="pic"></div><div class="wordline" id="wl"></div><div class="timer" id="tbar"><span class="tclip"><i id="bar"></i></span></div></div>`}
+  :`<div class="stage"><div class="lvl" id="lvl" title="Vanskelighetsgrad"></div><div class="picbox" id="pic"></div><div class="wordline" id="wl"></div><div class="timer ${cfg.secs?'':'untimed'}" id="tbar"><span class="tclip"><i id="bar"></i></span></div></div>`}
   <div class="ctrl"><button class="skip" onclick="skip()">HOPP OVER →</button><button class="go" onclick="correct()">✓ RIKTIG!</button></div>
   <p class="hint keys">${isDraw()?'<span class="hk-peek">Hold øyet for å se ordet · </span>Mellomrom = riktig · S = hopp over · Ctrl+Z = angre':'Mellomrom = riktig · S = hopp over · V = vis ordet · P = pause'}</p>
   <div class="pauseov" onclick="togglePause()"><div><div class="ic"><span class="pi"></span></div><b>PAUSE</b><span>Trykk for å fortsette</span></div></div>`;
@@ -2162,6 +2163,8 @@ document.addEventListener('keydown',e=>{
     if(!play.anim&&!play.paused){ play.left-=dt; play.elapsed+=dt; }
     if(play.total===0){                     // без времени: полоса показывает, сколько картинок осталось
       const bar=$('#bar'), fr=(1-usedCards()/play.cards).toFixed(3); if(bar&&bar._v!==fr){ bar._v=fr; bar.style.transform=`translateX(-${((1-fr)*100).toFixed(1)}%)`; }
+      // блик на полосе двигаем из JS: Edge на Windows (режим эффективности) замораживал анимации страницы, когда на ней ничего не менялось
+      if(bar) bar.style.setProperty('--ph',(now%3200/3200).toFixed(4));
       Snd.accel=0; requestAnimationFrame(frame); return;
     }
     const left=Math.max(0,play.left), bar=$('#bar'), tm=$('#tm'), hurry=left<10000;
